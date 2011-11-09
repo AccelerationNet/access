@@ -20,12 +20,12 @@
   :licence "BSD"
   :version "0.1"
   :serial t
-  :components ((:module :tests
+  :components ((:module :test
 			:serial t
 			:components ((:file "access"))))
   :depends-on (:access :lisp-unit))
 
-(defmethod asdf:perform ((o asdf:test-op) (c (eql (find-system :data-table))))
+(defmethod asdf:perform ((o asdf:test-op) (c (eql (find-system :access))))
   (asdf:oos 'asdf:load-op :access-test)
   (let ((*package* (find-package :access-test)))
     (eval (read-from-string "(run-tests)"))))

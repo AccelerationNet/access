@@ -6,7 +6,7 @@
 
 (in-package :access-test)
 
-(adwutils::enable-dot-syntax)
+(enable-dot-syntax)
 
 
 (defparameter +al+ `((:one . 1) ("two" . 2) ("three" . 3) (four . 4) (:5 . 5)))
@@ -15,26 +15,28 @@
 						   :test 'equalp))
 
 (defclass access-test ()
-  #.(append (slot-defs `(one two three))
-	    '((four :initarg :four :initform nil)
-	      (five :initarg :five :initform nil)
-	      (pl :initarg :pl :initform +pl+ :accessor pl))))
+  ((one :accessor one :initarg :one :initform nil)
+   (two :accessor two :initarg :two :initform nil)
+   (three :accessor three :initarg :three :initform nil)
+   (four :initarg :four :initform nil)
+   (five :initarg :five :initform nil)
+   (pl :initarg :pl :initform +pl+ :accessor pl)))
 
 (defparameter +o+ (make-instance 'access-test :one 1 :two 2 :three 3 :four 4 :five 5))
 
-(deftest access-basic (access)
+(define-test access-basic
   (assert-equal 5 (access +al+ 'length))
   (assert-equal 3 (access +al+ 'three))
   (assert-equal 3 (access +pl+ 'three))
   (assert-equal 3 (access +o+ 'three))
   (assert-equal 3 (access +ht+ 'three))
   (assert-equal
-   (list "one" "two" "three" "four" "5")
-   (access +ht+ 'hash-table-keys))
+   (list "5" "four" "three" "two" "one")
+   (access +ht+ 'alexandria:hash-table-keys))
   (assert-equal 3 (accesses +o+ 'pl 'three )))
 
-(deftest test-with-access (access)
-  (net.acceleration.utils::with-access (one two (my-three three))
+(define-test test-with-access
+  (with-access (one two (my-three three))
       +o+
     (assert-equal 1 one)
     (assert-equal 2 two)
@@ -45,7 +47,7 @@
     (setf my-three 3)
     ))
 
-(deftest access-and-setting-alist (access)
+(define-test access-and-setting-alist
   (assert-equal 3 (access +al+ 'three) "inited correctly")
   (let ((al (setf (access +al+ 'three) 333)))
     (assert-equal 333 (access al 'three) "first set")
@@ -55,7 +57,7 @@
     (setf al (setf (access al 'sixteen) 16))
     (assert-equal 16 (access al 'sixteen) "new key set")))
 
-(deftest access-and-setting-plist (access)
+(define-test access-and-setting-plist
   (assert-equal 3 (access +pl+ 'three))
 
   (let ((pl (setf (access +pl+ 'three) 333)))
@@ -64,7 +66,7 @@
     (setf pl (setf (access pl 'sixteen) 16))
     (assert-equal 16 (access pl 'sixteen))))
 
-(deftest access-and-setting-hashtable (access)
+(define-test access-and-setting-hashtable
   (assert-equal 3 (access +ht+ 'three))
   (setf (access +ht+ 'three) 333)
   (assert-equal 333 (access +ht+ 'three))
@@ -76,7 +78,7 @@
   (assert-equal 16 (access +ht+ "sixteen"))
   (remhash "sixteen" +ht+))
 
-(deftest access-and-setting-object (access)
+(define-test access-and-setting-object
   (assert-equal 1 (access +o+ 'one))
   (assert-equal 4 (access +o+ 'four))
   (setf (access +o+ 'four) 444
@@ -89,7 +91,7 @@
   (setf (access +o+ 'nothing) 10000)
   (assert-equal nil (access +o+ 'nothing)))
 
-(deftest setting-object-attributes (access)
+(define-test setting-object-attributes
   (assert-equal 1 (accesses +o+ 'pl :one) +o+ (pl +o+))
   (setf (accesses +o+ 'pl :one) 111)
   (assert-equal 111 (accesses +o+ 'pl :one)  +o+ (pl +o+))
@@ -104,15 +106,15 @@
   )
 
 
-(deftest dot-basic (access dot)
+(define-test dot-basic
   (with-dot ()
     (assert-equal 5 +al+.length)
     (assert-equal 3 +al+.three)
     (assert-equal 3 +pl+.three)
-    (assert-equal 3 +o+.three) 
+    (assert-equal 3 +o+.three)
     (assert-equal 3 +o+.pl.three)))
 
-(deftest dot-set (access dot)
+(define-test dot-set
   (with-dot ()
     (assert-equal 5 +al+.length)
     (assert-equal 3 +al+.three)
@@ -125,7 +127,7 @@
     (setf +o+.pl (setf +o+.pl.three 3))
     ))
 
-(deftest dot-basic-reader (access dot)
+(define-test dot-basic-reader
   (assert-equal 5 #D+al+.length)
   (assert-equal 3 #D+al+.three)
   (assert-equal 3 #D+pl+.three)
@@ -139,7 +141,7 @@
       (assert-equal 3 +o+.three)
       (assert-equal 3 +o+.pl.three)))
 
-(deftest dot-iteration (access dot)
+(define-test dot-iteration
   (with-dot ()
     (iter (for (k v . rest) on (list :pl1 +pl+ :pl2 +pl+) by #'cddr)
 	  (when (first-iteration-p)

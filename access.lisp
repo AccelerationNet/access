@@ -8,6 +8,8 @@
    #:has-writer?
    #:has-slot?
    #:class-of-object
+   #:class-direct-slot-readers
+   #:class-direct-slot-writers
    #:class-slot-readers
    #:class-slot-writers
    #:class-slot-names
@@ -121,11 +123,12 @@
   (awhen (class-of-object o)
     (%slot-writers (closer-mop:class-slots it))))
 
-(defmethod class-slot-names ((class standard-class))
-  (mapcar
-   #'closer-mop:slot-definition-name
-   (closer-mop:class-slots
-    class)))
+(defun class-slot-names (o)
+  (awhen (class-of-object o)
+    (mapcar
+     #'closer-mop:slot-definition-name
+     (closer-mop:class-slots
+      it))))
 
 (defun has-reader? (o reader-name)
   "For o, does a reader function exist for it"
