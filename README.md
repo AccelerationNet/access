@@ -7,6 +7,7 @@ bunch of dictionaries with slightly different apis)
 ## access, accesses , (setf access), (setf accesses)
 
 These functions allow unified access to these data structures:
+
  * accessor access to CLOS objects
  * slot access to CLOS objects if the key matches a slot name but not
    an accessor
@@ -22,6 +23,17 @@ on nil it will call that method))
 This library will probably appeal most to new comers to the language
 as everyone else will probably be happy just calling each type of
 access according to its own api.
+
+### Limitations
+
+ * Accessors should share slot names for this to work best.  This is
+   due to differences in "direct" class slots versus indirect slots
+   (only direct slots have the reader value filed out).
+ * While most structures use equalper to get around differnt key
+   packages and strings vs symbols.  Hash-tables do not currently
+   support an equalper style interface.  As such some small care needs
+   to be taken.  We try to support this by looking up has values by
+   symbol, then by symbol-name if symbol fails to produce a result
 
 ### A word on performance
 
@@ -69,10 +81,11 @@ A predicate to make comparing symbols in different packages easier, by
 comparing them case-insensitively based on symbol-name.  In other
 respects it is equalp.
 
-### plist-val, rem-plist-val, :set-plist-val 
+### plist-val, rem-plist-val, set-plist-val
 
 Functions to ease access to plist values (used by access when
 detecting a plist)
+
 
 
 ## DOT syntax
@@ -89,8 +102,8 @@ the dot syntax is enabled symbols with a dot in them will be
 transformed to the appropriate accesses calls.
 
 
-  EX: foo.bar.bast => (accesses foo 'bar 'bast)
-  EX: (setf ht.key.subkey new-val) => (setf (accesses foo 'bar 'bast) new-val)
+  EX: #Dfoo.bar.bast => (accesses foo 'bar 'bast)
+  EX: (with-dot () (setf ht.key.subkey new-val)) => (setf (accesses foo 'bar 'bast) new-val)
 
 ## Authors
 
