@@ -32,8 +32,8 @@ access according to its own api.
  * While most structures use equalper to get around differnt key
    packages and strings vs symbols.  Hash-tables do not currently
    support an equalper style interface.  As such some small care needs
-   to be taken.  We try to support this by looking up has values by
-   symbol, then by symbol-name if symbol fails to produce a result
+   to be taken.  We try to support this by looking up values by
+   symbol, then by symbol-name if symbol fails to produce a result.
 
 ### A word on performance
 
@@ -103,7 +103,7 @@ transformed to the appropriate accesses calls.
 
 
   EX: #Dfoo.bar.bast => (accesses foo 'bar 'bast)
-  EX: (with-dot () (setf ht.key.subkey new-val)) => (setf (accesses foo 'bar 'bast) new-val)
+  EX: (with-dot () (setf ht.key.subkey new-val)) => (setf (accesses ht 'key 'subkey) new-val)
 
 ## Authors
 
