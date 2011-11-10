@@ -18,7 +18,8 @@ These functions allow unified access to these data structures:
 They also opts to produce nil as opposed to signaling errors when they
 fail to access (eg (access nil 'anything) produces nil rather than
 signaling a missing method on nil (though if 'anything is specialized
-on nil it will call that method))
+on nil it will call that method)). Slot unboundedness errors are not 
+signaled.
 
 This library will probably appeal most to new comers to the language
 as everyone else will probably be happy just calling each type of
