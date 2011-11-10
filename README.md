@@ -93,13 +93,13 @@ detecting a plist)
 DOT syntax is invoked with #D reader macro on a form or by wrapping
 that form in a with-dot call
 
-Many new comers to the language long for their dot operator from other
+Many new-comers to the language long for their dot operator from other
 lanugages they know.  This functionality is provided (when desired) by
-enable-dot-syntax and in a block by using the with-dot macro.  I wrote
+enable-dot-syntax (for #D) or wrapping a block in the with-dot macro.  I wrote
 these for fun and much prefer just using the access functions directly
 (ie. I never actually use these syntax transformers).  That said, when
-the dot syntax is enabled symbols with a dot in them will be
-transformed to the appropriate accesses calls.
+the dot syntax is enabled, symbols with a dot in them will be
+transformed to the appropriate `accesses` calls.
 
 
   EX: #Dfoo.bar.bast => (accesses foo 'bar 'bast)
