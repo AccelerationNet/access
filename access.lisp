@@ -24,6 +24,8 @@
    ;; main stuff
    #:access
    #:accesses
+   #:set-access
+   #:set-accesses
    #:access-copy
    #:mutate-access
    #:with-access
@@ -254,44 +256,61 @@
 			     (slot-boundp o k))
 		    (slot-value o k))))))))
 
-(defun (setf access) (new o k &key type (test #'equalper) (key #'identity))
+(defun set-access (new o k &key type (test #'equalper) (key #'identity))
   "set places in plists, alists, hashtables and clos objects all through the same interface"
   (if (null type)
       (typecase o
-	(list (if (consp (first o))
-		  (setf (access o k :type :alist :test test :key key) new)
-		  (setf (access o k :type :plist :test test :key key) new)))
-	(hash-table (setf (access o k :type :hash-table :test test :key key) new))
-	(standard-object (setf (access o k :type :object :test test :key key) new)))
+        (list (if (consp (first o))
+                  (set-access new o k :type :alist :test test :key key)
+                  (set-access new o k :type :plist :test test :key key)))
+        (hash-table (set-access new o k :type :hash-table :test test :key key))
+        (standard-object (set-access new o k :type :object :test test :key key)))
       (multiple-value-bind (res called) (setf-if-applicable new o k)
-	(if called
-	    res
-	    (case type
-	      (:plist
-		 (set-plist-val new k o :test test :key key))
-	      (:alist
-		 (aif (assoc k o :test test :key key)
-		      (progn (setf (cdr it) new) o)
-		      (list* (cons k new) o)))
-	      (:hash-table
-		 (let ((skey (string k)))
-		   (multiple-value-bind (res found) (gethash k o)
-		     (declare (ignore res))
-		     (multiple-value-bind (sres sfound)
-			 (awhen skey (gethash it o))
-		       (declare (ignore sres))
-		       (cond
-			 (found (setf (gethash k o) new))
-			 ((or sfound skey) (setf (gethash skey o) new))
-			 (T (setf (gethash k o) new)))
-		       (if found
-			   (setf (gethash k o) new)))
-		     ))
-		 o)
-	      (:object
-		  (when (has-slot? o k)
-		    (setf (slot-value o k) new))
-		o))))))
+        (if called
+            (values res o)
+            (values
+             new
+             (case type
+               (:plist
+                (set-plist-val new k o :test test :key key))
+               (:alist
+                (aif (assoc k o :test test :key key)
+                     (progn (setf (cdr it) new) o)
+                     (list* (cons k new) o)))
+               (:hash-table
+                (let ((skey (string k)))
+                  (multiple-value-bind (res found) (gethash k o)
+                    (declare (ignore res))
+                    (multiple-value-bind (sres sfound)
+                        (awhen skey (gethash it o))
+                      (declare (ignore sres))
+                      (cond
+                        (found (setf (gethash k o) new))
+                        ((or sfound skey) (setf (gethash skey o) new))
+                        (T (setf (gethash k o) new)))
+                      (if found
+                          (setf (gethash k o) new)))
+                    ))
+                o)
+               (:object
+                   (when (has-slot? o k)
+                     (setf (slot-value o k) new))
+                 o)))))))
+
+(define-setf-expander access (place key
+                              &environment env
+                              &aux (new-val (gensym "NEW-VAL"))
+                              (place-store (gensym "PLACE")))
+  "This should allow setting places through access"
+  (declare (ignore env))
+  (values ()   ;; not using temp vars
+          ()   ;; not using temp vals
+          `(,new-val)
+          `(multiple-value-bind (,new-val ,place-store)
+            (set-access ,new-val ,place ,key)
+            (setf ,place ,place-store)
+            ,new-val)
+          `(access ,place ,key)))
 
 (defun accesses (o &rest keys)
   "keep accessing keys on resulting objects
@@ -300,15 +319,36 @@
 	(setf o (access o k)))
   o)
 
-(defun (setf accesses) (new o &rest keys)
+(defun set-accesses (new o &rest keys)
   "keep accessing till you get to the end of keys , then store the result of
-   setting that field back up the call tree"
+   setting that field back up the call tree
+
+   returns the new value and the object that was stored there
+   (so for a plist / alist you have a ref to the val and the full list)
+  "
   (labels ((rec-set (o key more)
-	     (setf (access o key)
-		   (if more
-		       (rec-set (access o key) (first more) (rest more))
-		       new))))
+             (cond
+               (more
+                (multiple-value-bind (new new-place-val)
+                    (rec-set (access o key) (first more) (rest more))
+                  (setf (access o key) new-place-val)
+                  (values new o)))
+               (T (set-access new o key)))))
     (rec-set o (first keys) (rest keys))))
+
+(define-setf-expander accesses (place &rest keys
+                                &environment env
+                                &aux (new-val (gensym "NEW-VAL"))
+                                (place-store (gensym "PLACE")))
+  (declare (ignore env))
+  (values ()   ;; not using temp vars
+          ()   ;; not using temp vals
+          `(,new-val)
+          `(multiple-value-bind (,new-val ,place-store)
+            (set-accesses ,new-val ,place ,@keys)
+            (setf ,place ,place-store)
+            ,new-val)
+          `(accesses ,place ,@keys)))
 
 (defun mutate-access (o k fn)
   "Mutate the value stored in key k on object o, by passing it through fn"
