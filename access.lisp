@@ -242,15 +242,15 @@
 	    res
 	    (case type
 	      (:plist
-		 (plist-val k o :test test :key key))
+               (plist-val k o :test test :key key))
 	      (:alist
-		 (cdr (assoc k o :test test :key key)))
+               (cdr (assoc k o :test test :key key)))
 	      (:hash-table
-		 (multiple-value-bind (res found) (gethash k o)
-		   (if found
-		       res
-		       (awhen (ignore-errors (string k))
-			 (gethash it o)))))
+               (multiple-value-bind (res found) (gethash k o)
+                 (if found
+                     res
+                     (awhen (ignore-errors (string k))
+                       (gethash it o)))))
 	      (:object
 		  (when (and (has-slot? o k)
 			     (slot-boundp o k))
@@ -316,7 +316,7 @@
   "keep accessing keys on resulting objects
    eg: (accesses o k1 k2) => (access (access o k1) k2)"
   (iter (for k in keys)
-	(setf o (access o k)))
+    (setf o (access o k)))
   o)
 
 (defun set-accesses (new o &rest keys)

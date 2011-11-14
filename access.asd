@@ -10,7 +10,7 @@
   :description "A library providing functions that unify data-structure access for Common Lisp:
       access and (setf access)"
   :licence "BSD"
-  :version "0.1"
+  :version "0.2"
   :serial t
   :components ((:file "access"))
   :depends-on (:iterate :closer-mop :alexandria :anaphora :cl-interpol))
@@ -18,7 +18,7 @@
 (defsystem :access-test
   :description "Tests for the access library"
   :licence "BSD"
-  :version "0.1"
+  :version "0.2"
   :serial t
   :components ((:module :test
 			:serial t

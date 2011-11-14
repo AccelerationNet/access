@@ -20,6 +20,7 @@
    (three :accessor three :initarg :three :initform 3)
    (four :initarg :four :initform 4)
    (five :initarg :five :initform 5)
+   (null-slot :initarg :null-slot :initform ())
    (pl :initarg :pl :initform (copy-list +pl+) :accessor pl)))
 
 
@@ -85,6 +86,9 @@
 
 (define-test access-and-setting-object
   (let ((o (make-obj)))
+    (assert-equal nil (access o 'null-slot))
+    (setf (accesses o 'null-slot 'not-a-fn) 'any-more)
+    (assert-equal 'any-more (accesses o 'null-slot 'not-a-fn))
     (assert-equal 1 (access o 'one))
     (assert-equal 4 (access o 'four))
     (setf (access o 'four) 444
