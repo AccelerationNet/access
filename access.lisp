@@ -29,6 +29,7 @@
    #:access-copy
    #:mutate-access
    #:with-access
+   #:with-all-slot-accessors
 
    ;; dot syntax stuff
    #:with-dot
@@ -373,6 +374,28 @@
        (symbol-macrolet (,@forms)
 	 ,@body
 	 ))))
+
+(defun %create-accessor-symbol-list (class)
+  "Gets the slots off a class an builds binding like  (local::symbol orig::symbol)
+   where local is the current *package* and orig is the original package of the symbol
+
+   used in with-all-slot-accessors"
+  (let ((class (etypecase class
+		 (symbol (find-class class))
+		 (standard-class class))))
+    (closer-mop:ensure-finalized class)
+    (iter (for slot-name in (class-slot-names class))
+      ;; collect bindings of local-symbol to class-slot-name
+      (collect (list (intern (symbol-name slot-name))
+                     slot-name)))))
+
+(defmacro with-all-slot-accessors ((data class-name) &body body)
+  "A macro which binds (like with-access) all slot names of a class to a local
+   symbolmacro let storing and retrieving using access"
+  (let ((symlist (%create-accessor-symbol-list class-name)))
+    `(access:with-access ,symlist ,data
+      ,@body)
+    ))
 
 ;;;; DOT Syntax stuff
 
