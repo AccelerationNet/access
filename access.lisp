@@ -30,6 +30,8 @@
    #:mutate-access
    #:with-access
    #:with-all-slot-accessors
+   #:with-access-values
+   #:with-all-slot-access-values
 
    ;; dot syntax stuff
    #:with-dot
@@ -396,6 +398,37 @@
     `(access:with-access ,symlist ,data
       ,@body)
     ))
+
+(defmacro with-access-values (bindings obj &body body)
+  "A macro which binds local variables from accessed values on object
+   according to bindings
+
+   bindings: (local-symbol-and-access-key
+              or (local-symbol access-key)
+               ...)
+   obj: the thing we are accessing data from
+  "
+  (flet ((key-for (it)
+           (etypecase it
+             (symbol `(quote ,it))
+             ((or string keyword list) it))))
+    (let* ((o (gensym "OBJ"))
+           (expanded-bindings
+             (iter (for b in (ensure-list bindings))
+               (when (first-iteration-p)
+                 (collect `(,o ,obj)))
+               (typecase b
+                 (null)
+                 (list (collect `(,(first b) (access ,o ,(key-for (second b))))))
+                 (symbol (collect `(,b (access ,o ,(key-for b)))))))))
+      `(let* ,expanded-bindings
+        ,@body))))
+
+(defmacro with-all-slot-access-values ((obj class) &body body)
+  "A macro which binds local variables for each slot value in class
+   as by access"
+  `(with-access-values ,(%create-accessor-symbol-list class) ,obj
+    ,@body))
 
 ;;;; DOT Syntax stuff
 
