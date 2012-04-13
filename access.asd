@@ -12,7 +12,8 @@
   :licence "BSD"
   :version "0.2"
   :serial t
-  :components ((:file "access"))
+  :components ((:file "access")
+               (:file "arg-list-manipulation"))
   :depends-on (:iterate :closer-mop :alexandria :anaphora :cl-interpol))
 
 (defsystem :access-test
@@ -21,8 +22,9 @@
   :version "0.2"
   :serial t
   :components ((:module :test
-			:serial t
-			:components ((:file "access"))))
+                        :serial t
+                        :components ((:file "access")
+                                     (:file "arg-list-manipulation"))))
   :depends-on (:access :lisp-unit))
 
 (defmethod asdf:perform ((o asdf:test-op) (c (eql (find-system :access))))

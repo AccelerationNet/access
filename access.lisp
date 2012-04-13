@@ -37,6 +37,15 @@
    #:with-dot
    #:enable-dot-syntax
    #:disable-dot-syntax
+
+   ;; arg-list-manip
+   #:arg-list-key-value
+   #:set-arg-list-key-value
+   #:set-arg-list-key-value!
+   #:rem-arg-list-key-value
+   #:rem-arg-list-key-value!
+   #:ensure-arg-list-key-value
+   #:ensure-arg-list-key-value!
    ))
 
 (in-package :access)
