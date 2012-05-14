@@ -436,8 +436,11 @@
 (defmacro with-all-slot-access-values ((obj class) &body body)
   "A macro which binds local variables for each slot value in class
    as by access"
-  `(with-access-values ,(%create-accessor-symbol-list class) ,obj
-    ,@body))
+  (let* ((bindings (%create-accessor-symbol-list class))
+         (vars (mapcar #'first bindings)))
+    `(with-access-values ,bindings ,obj
+      (declare (ignorable ,@vars))
+      ,@body)))
 
 ;;;; DOT Syntax stuff
 
