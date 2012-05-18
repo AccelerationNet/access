@@ -400,13 +400,15 @@
       (collect (list (intern (symbol-name slot-name))
                      slot-name)))))
 
-(defmacro with-all-slot-accessors ((data class-name) &body body)
-  "A macro which binds (like with-access) all slot names of a class to a local
-   symbolmacro let storing and retrieving using access"
-  (let ((symlist (%create-accessor-symbol-list class-name)))
-    `(access:with-access ,symlist ,data
-      ,@body)
-    ))
+(defun %remove-quote-&-or (class-name)
+  "remove any quote / ors so that list type-specifications"
+  (typecase class-name
+    (list
+     (case (first class-name)
+       (quote (%remove-quote-&-or (second class-name)))
+       (or (%remove-quote-&-or (rest class-name)))
+       (t class-name)))
+    (symbol class-name)))
 
 (defmacro with-access-values (bindings obj &body body)
   "A macro which binds local variables from accessed values on object
@@ -433,14 +435,51 @@
       `(let* ,expanded-bindings
         ,@body))))
 
+(defun %with-all-slot-helper (data class-name body
+                                   &key (with-name 'with-access)
+                                   (add-ignorables? nil)
+                                   &aux (sdata data))
+  "A macro which binds (like with-access) all slot names of a class to a local
+   symbolmacro let storing and retrieving using access
+
+   class-name: a symbol or a list of class-names (symbols)
+     to make this easier to call we ignore quote and or
+     eg: 't1=>t1, (or 't1 't2 ...)=> (t1 t2 ...)
+  "
+  (setf with-name (%remove-quote-&-or with-name))
+  (labels ((typed-form (class-name)
+             (let* ((symlist (%create-accessor-symbol-list class-name)))
+               `(,with-name ,symlist ,sdata
+                 ,@(when add-ignorables?
+                     `((declare (ignorable ,@(mapcar #'first symlist)))))
+                 ,@body))))
+    (setf class-name (%remove-quote-&-or class-name))
+    (typecase class-name
+      (list
+       (setf sdata (gensym "DATA"))
+       `(let ((,sdata ,data))
+         (etypecase ,sdata
+           ,@(iter (for cn in class-name)
+               (setf cn (%remove-quote-&-or cn))
+               (collect (list cn (typed-form cn)))))))
+      (symbol (typed-form class-name)))))
+
+(defmacro with-all-slot-accessors ((data class-name) &body body)
+  "A macro which binds (like with-access) all slot names of a class to a local
+   symbolmacro let storing and retrieving using access
+
+   class-name: a symbol or a list of class-names (symbols)
+     to make this easier to call we ignore quote and or
+     eg: 't1=>t1, (or 't1 't2 ...)=> (t1 t2 ...)
+  "
+  (%with-all-slot-helper data class-name body))
+
 (defmacro with-all-slot-access-values ((obj class) &body body)
   "A macro which binds local variables for each slot value in class
    as by access"
-  (let* ((bindings (%create-accessor-symbol-list class))
-         (vars (mapcar #'first bindings)))
-    `(with-access-values ,bindings ,obj
-      (declare (ignorable ,@vars))
-      ,@body)))
+  (%with-all-slot-helper obj class body
+    :with-name 'access:with-access-values
+    :add-ignorables? t))
 
 ;;;; DOT Syntax stuff
 
