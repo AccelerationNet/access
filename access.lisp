@@ -8,6 +8,7 @@
    #:has-writer?
    #:has-slot?
    #:class-of-object
+   #:class-slot-by-name
    #:class-direct-slot-names
    #:class-direct-slot-readers
    #:class-direct-slot-writers
@@ -149,6 +150,13 @@
     (mapcar
      #'closer-mop:slot-definition-name
      (closer-mop:class-slots it))))
+
+(defun class-slot-by-name (o k &key (test #'equalper) )
+  (setf o (class-of-object o))
+  (when o
+    (iter (for s in (closer-mop:class-slots o))
+      (when (funcall test k (closer-mop:slot-definition-name s))
+        (return s)))))
 
 (defun has-reader? (o reader-name)
   "For o, does a reader function exist for it"
