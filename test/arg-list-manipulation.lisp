@@ -99,3 +99,14 @@
   (assert-equal
    '(:a :b :c :d :key2 #\d)
    (setal #\d :key2 '(:a :b :c :d))))
+
+(define-test set-arg-list-key-value-nulls
+  (assert-equal
+   #\d (write-then-read #\d :key2 '() ))
+  (assert-equal
+   #\d (write-then-read #\d :key2 '( 1 ) ))
+  (assert-equal
+   #\d (write-then-read #\d :key2 '( :foo ) ))
+  (assert-equal
+   '(:foo :key2 #\d)
+   (set-arg-list-key-value #\d :key2 '( :foo ))))

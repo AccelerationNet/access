@@ -9,39 +9,43 @@
       (return v))))
 
 (defmethod set-arg-list-key-value (new id arg-list
-                                 &key (test #'equalper) (key #'identity) ensure?)
+                                   &key (test #'equalper) (key #'identity) ensure?)
   "Set the keyword parameter id to the value new
    if ensure? then only set if it doesnt exist (in which case new acts as a default)"
-  (iter
-    (with skip?)
-    (with len-1 = (- (length arg-list) 1))
-    (for i from 0)
-    (for (k v . rest) on arg-list)
-    (when skip? (setf skip? nil) (next-iteration))
-    (cond
-      ;; we didnt get a keyword, so not it
-      ((not (keywordp k))
-       (collect k)
-       ;; if we are the last possible spot to check for
-       ;; keywords make sure we collect the final v
-       (when (and (null rest) (= i len-1))
-         (collect v)))
-      ;; when we are the key to set
-      ((funcall test (funcall key k) id)
-       (collect k)
-       (collect (if ensure? v new))
-       (appending rest)
-       (finish))
-      ;; got a keyword, but not the correct one
-      (t (collect k)
-         ;; dont collect v if it is not a valid part of the arg-list
-         ;; eg: '(:A :B :C) shouldnt collect an extra nil
-         (unless (= i len-1) (collect v))
-         (setf skip? t)))
-    (when (null rest)
-      (setf skip? t)
-      (collect id)
-      (collect new))))
+  (cond
+    ((< (length arg-list) 2)
+     (append arg-list (list id new)))
+    (t (iter
+         (with skip?)
+         (with len-1 = (- (length arg-list) 1))
+         (for i from 0)
+         (for (k v . rest) on arg-list)
+         (when skip? (setf skip? nil) (next-iteration))
+         (cond
+           ;; we didnt get a keyword, so not it
+           ((not (keywordp k))
+            (collect k into res)
+            ;; if we are the last possible spot to check for
+            ;; keywords make sure we collect the final v
+            (when (and (null rest) (= i len-1))
+              (collect v  into res)))
+           ;; when we are the key to set
+           ((funcall test (funcall key k) id)
+            (collect k into res)
+            (collect (if ensure? v new) into res)
+            (appending rest into res)
+            (finish))
+           ;; got a keyword, but not the correct one
+           (t (collect k into res)
+              ;; dont collect v if it is not a valid part of the arg-list
+              ;; eg: '(:A :B :C) shouldnt collect an extra nil
+              (unless (= i len-1) (collect v into res))
+              (setf skip? t)))
+         (when (null rest)
+           (setf skip? t)
+           (collect id into res)
+           (collect new into res))
+         (finally (return res))))))
 
 (defmethod ensure-arg-list-key-value (default id arg-list &key (test #'equalper) (key #'identity))
   "Ensure that a specific keyword has a value (or default) in an appliable arg list"
