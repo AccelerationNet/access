@@ -160,8 +160,9 @@
   (setf o (class-of-object o))
   (when o
     (iter (for s in (closer-mop:class-slots o))
-      (when (funcall test k (closer-mop:slot-definition-name s))
-        (return s)))))
+      (for name = (closer-mop:slot-definition-name s))
+      (when (funcall test k name)
+        (return (values s name))))))
 
 (defun has-reader? (o reader-name)
   "For o, does a reader function exist for it"
