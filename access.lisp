@@ -13,6 +13,7 @@
    #:class-direct-slot-readers
    #:class-direct-slot-writers
    #:class-slot-names
+   #:class-slot-definitions
    #:class-slot-readers
    #:class-slot-writers
    #:equalper
@@ -150,6 +151,10 @@
     (mapcar
      #'closer-mop:slot-definition-name
      (closer-mop:class-slots it))))
+
+(defun class-slot-definitions (o)
+  (setf o (class-of-object o))
+  (when o (closer-mop:class-slots o)))
 
 (defun class-slot-by-name (o k &key (test #'equalper) )
   (setf o (class-of-object o))
