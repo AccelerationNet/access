@@ -34,7 +34,6 @@
    (null-slot :initarg :null-slot :initform ())
    (pl :initarg :pl :initform (copy-list +pl+) :accessor pl)))
 
-
 (defun make-obj () (make-instance 'access-test))
 
 (define-test access-basic
@@ -191,4 +190,33 @@
           (setf warned? t)))
       (assert-true warned? "We got a warning for multi-slot-matches"))
     (assert-eql 'access-test-other::my-slot (has-slot? o 'access-test-other::my-slot))))
+
+(defclass accessed-object ()
+  ((my-slot :initarg :my-slot :initform nil)
+   (no-access :initarg :no-access :initform nil)
+   (call-number :accessor call-number :initarg :call-number :initform 0)))
+
+(defmethod my-slot ((o accessed-object))
+  (incf (call-number o))
+  (slot-value o 'my-slot))
+
+(defmethod (setf my-slot) (new (o accessed-object))
+  (incf (call-number o))
+  (setf (slot-value o 'my-slot) new ))
+
+(define-test ensure-called-when-you-can
+  (let ((o (make-instance 'accessed-object)))
+    (setf (access o :my-slot) :test)
+    (assert-eql 1 (call-number o))
+    (assert-eql :test (access o :my-slot))
+    (assert-eql 2 (call-number o))
+
+    ;; check that accessorless slots still work correctly
+    (setf (access o :no-access) :test2)
+    (assert-eql :test2 (access o :no-access) :slot-access-by-name-failed)
+
+    ;; check that accessorless slots still work correctly
+    (setf (access o 'no-access) :test3)
+    (assert-eql :test3 (access o 'no-access) :slot-access-failed)
+    ))
 

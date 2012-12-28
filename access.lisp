@@ -312,9 +312,16 @@
                        (gethash it o)))))
 	      (:object
                   (let ((actual-slot-name (has-slot? o k)))
-                    (when (and actual-slot-name
-                               (slot-boundp o actual-slot-name))
-                      (slot-value o actual-slot-name)))))))))
+                     (cond
+                       ;; same package as requested, must be no accessor so handle slots
+                       ((eql actual-slot-name k)
+                        (when (slot-boundp o k)
+                          (slot-value o k)))
+
+                       ;; lets recheck for an accessor in the correct package
+                       (actual-slot-name
+                        (access o actual-slot-name :type type :test test :key key))
+                       ))))))))
 
 (defun set-access (new o k &key type (test #'equalper) (key #'identity))
   "set places in plists, alists, hashtables and clos objects all through the same interface"
@@ -353,8 +360,15 @@
                     ))
                 o)
                (:object
-                   (when (has-slot? o k)
-                     (setf (slot-value o k) new))
+                   (let ((actual-slot-name (has-slot? o k)))
+                     (cond
+                       ;; same package so there must be no accessor
+                       ((eql actual-slot-name k)
+                        (setf (slot-value o k) new))
+                       ;; different package, but we have a slot, so lets look for its accessor
+                       (actual-slot-name
+                        (set-access new o actual-slot-name :type type :test test :key key))
+                       ))
                  o)))))))
 
 (define-setf-expander access (place key
