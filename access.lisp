@@ -3,6 +3,7 @@
   (:shadowing-import-from :alexandria #:ensure-list )
   (:shadowing-import-from :anaphora #:awhen #:aif #:it)
   (:export
+   #:access-warning
    ;; utils to make this work
    #:has-reader?
    #:has-writer?
@@ -51,6 +52,23 @@
    ))
 
 (in-package :access)
+
+(define-condition access-condition (simple-condition)
+  ((format-control :accessor format-control :initarg :format-control :initform nil)
+   (format-args :accessor format-args :initarg :format-args :initform nil)
+   (original-error :accessor original-error :initarg :original-error :initform nil))
+  (:report (lambda (c s)
+	     (apply #'format
+	      s
+	      (format-control c)
+	      (format-args c)))))
+
+(define-condition access-warning (access-condition warning) ())
+
+(defun access-warn (message &rest args)
+  (warn (make-condition 'access-warning
+			:format-control message
+			:format-args args)))
 
 (defun equalper (x y)
   "compares symbols by equalp symbol-name"
@@ -174,7 +192,7 @@
 		    ((or keyword string) (string-equal (string name) (string reader-name)))
 		    (function (eql reader reader-name))
 		    (symbol (eql name reader-name))
-		    (T (warn "Not sure how to ~S maps to a function" reader-name)))
+		    (T (access-warn "Not sure how to ~S maps to a function" reader-name)))
 	      (return (values reader name)))))))
 
 (defun has-writer? (o writer-name)
@@ -194,16 +212,31 @@
 			   ;; setf-form ;; try again with just the slotname
 			   (has-writer? o (second writer-name))))
 		    (symbol (eql sn writer-name))
-		    (T (warn "Not sure how to ~S maps to a function" writer-name)))
+		    (T (access-warn "Not sure how to ~S maps to a function" writer-name)))
 	      (return (values writer wn sn)))))))
 
-(defun has-slot? (o slot-name)
-  "Does o have a slot names slot-name"
-  (let ((slot-names (class-slot-names o)))
-    (typecase slot-name
-      ((or keyword string)
-	 (member (string slot-name) slot-names :test #'string-equal :key #'string))
-      (symbol (member slot-name slot-names)))))
+(defun has-slot? (o slot-name &key (lax? t))
+  "Does o have a slot names slot-name
+
+   if lax? we will ignore packages to find the slot we will always return a
+   slot-name from the specified package if it exists, otherwise we return the
+   slot-name we found if its in a different package"
+  (let ((slot-names (class-slot-names o))
+        lax)
+    (or
+     (iter (for sn in slot-names)
+       (cond
+         ;; exact match - always return this first if we find it
+         ((eql sn slot-name) (return sn))
+
+         ;; return the first lax match we find
+         ((and lax? (not lax) (equalper slot-name sn))
+          (setf lax sn))
+
+         ;; warn on any additional lax matches we find
+         ((and lax? lax (equalper slot-name sn))
+          (access-warn "Multiple slots inexactly matched for ~a on ~a" slot-name o))))
+     lax)))
 
 (defun setf-if-applicable (new o fn)
   "If we find a setf function named (setf fn) that can operate on o then call
@@ -215,7 +248,7 @@
 	  (typecase fn
 	    ((or keyword string symbol) (has-writer? o fn))
 	    (function fn)
-	    (T (warn "Not sure how to call a ~A" fn) ))))
+	    (T (access-warn "Not sure how to call a ~A" fn) ))))
   (when fn
     ;; complex if/whens instead of ands/ors because a standard generic function
     ;; is a function, but we dont want to call it if not applicable
@@ -236,7 +269,7 @@
 	    ((or keyword string) (has-reader? o fn))
 	    (symbol (symbol-function fn))
 	    (function fn)
-	    (T (warn "Not sure how to call a ~A" fn) ))))
+	    (T (access-warn "Not sure how to call a ~A" fn) ))))
   (when fn
     ;; complex if/whens instead of ands/ors because a standard generic function
     ;; is a function, but we dont want to call it if not applicable
@@ -278,9 +311,10 @@
                      (awhen (ignore-errors (string k))
                        (gethash it o)))))
 	      (:object
-		  (when (and (has-slot? o k)
-			     (slot-boundp o k))
-		    (slot-value o k))))))))
+                  (let ((actual-slot-name (has-slot? o k)))
+                    (when (and actual-slot-name
+                               (slot-boundp o actual-slot-name))
+                      (slot-value o actual-slot-name)))))))))
 
 (defun set-access (new o k &key type (test #'equalper) (key #'identity))
   "set places in plists, alists, hashtables and clos objects all through the same interface"

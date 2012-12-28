@@ -4,9 +4,20 @@
   (:shadowing-import-from :anaphora #:awhen #:aif #:it)
   (:export ))
 
+;; for a specific test
+(cl:defpackage :access-test-other
+  (:use :cl :cl-user :iterate :access :lisp-unit)
+  (:export ))
+
 (in-package :access-test)
 
 (enable-dot-syntax)
+
+(defun run-all-tests ()
+  (let ((lisp-unit:*print-errors* t)
+        (lisp-unit:*print-failures* t)
+        (lisp-unit:*print-summary* t))
+    (run-tests :all)))
 
 
 (defparameter +al+ `((:one . 1) ("two" . 2) ("three" . 3) (four . 4) (:5 . 5)))
@@ -161,4 +172,23 @@
 	    (assert-equal 10 rest.pl2.length)
 	    (assert-equal 4 rest.pl2.four))
 	  (assert-equal 4 v.four))))
+
+(defclass multi-package-test-obj ()
+  ((my-slot :accessor my-slot :initarg :my-slot :initform nil)
+   (access-test-other::my-slot :accessor access-test-other::my-slot
+                               :initarg :my-slot :initform nil))
+  (:documentation "Do you hate sanity?"))
+
+(define-test has-slot
+  (let ((o (make-instance 'multi-package-test-obj)))
+    (assert-eql 'my-slot (has-slot? o 'my-slot))
+    ;; seems like this *could be* implementation dependent based on the ordering returned from
+    ;; the mop... Lets hope for the sanest (eg first listed)
+    (assert-eql 'my-slot (has-slot? o :my-slot))
+    (let ( warned? )
+      (handler-case (has-slot? o :my-slot)
+        (access-warning (c) (declare (ignore c))
+          (setf warned? t)))
+      (assert-true warned? "We got a warning for multi-slot-matches"))
+    (assert-eql 'access-test-other::my-slot (has-slot? o 'access-test-other::my-slot))))
 
