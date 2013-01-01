@@ -75,11 +75,14 @@
         (setf removed-val v))))
    removed-val))
 
-(defmacro set-arg-list-key-value! (new id place &key (test '#'equalper) (key '#'identity))
-  `(setf ,place (set-arg-list-key-value ,new ,id ,place :test ,test :key ,key)))
+(defmacro set-arg-list-key-value! (new ids place &key (test '#'equalper) (key '#'identity))
+  `(iter (for id in (ensure-list ,ids))
+    (setf ,place (set-arg-list-key-value ,new id ,place :test ,test :key ,key))))
 
-(defmacro ensure-arg-list-key-value! (default id place &key (test '#'equalper) (key '#'identity))
-  `(setf ,place (ensure-arg-list-key-value ,default ,id ,place :test ,test :key ,key)))
+(defmacro ensure-arg-list-key-value! (default ids place &key (test '#'equalper) (key '#'identity))
+  `(iter (for id in (ensure-list ,ids))
+    (setf ,place (ensure-arg-list-key-value ,default id ,place :test ,test :key ,key))))
 
-(defmacro rem-arg-list-key-value! (id place &key (test '#'equalper) (key '#'identity))
-  `(setf ,place (rem-arg-list-key-value ,id ,place :test ,test :key ,key)))
+(defmacro rem-arg-list-key-value! (ids place &key (test '#'equalper) (key '#'identity))
+  `(iter (for id in (ensure-list ,ids))
+    (setf ,place (rem-arg-list-key-value id ,place :test ,test :key ,key))))
