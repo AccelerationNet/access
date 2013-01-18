@@ -20,7 +20,9 @@
    #:equalper
    #:plist-val
    #:rem-plist-val
+   #:rem-plist-val!
    #:set-plist-val
+   #:set-plist-val!
    #:call-if-applicable
    #:call-applicable-fns
 
@@ -96,6 +98,10 @@
              (collect v into plist)))
     (finally (return (values plist removed)))))
 
+(defmacro rem-plist-val! (id place &key (test #'equalper) (key #'identity))
+  `(setf ,place
+    (rem-plist-val ,id ,place :test ,test :key ,key)))
+
 (defmethod set-plist-val (new id list &key (test #'equalper) (key #'identity))
   (iter
     (with collected)
@@ -109,6 +115,10 @@
      (unless collected
        (setf res (list* id new res)))
      (return res))))
+
+(defmacro set-plist-val! (new id place &key (test #'equalper) (key #'identity))
+  `(setf ,place
+    (set-plist-val ,new ,id ,place :test ,test :key ,key)))
 
 (defun %slot-readers (slots)
   (iter (for slot in (ensure-list slots))
