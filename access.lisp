@@ -231,6 +231,7 @@
    if lax? we will ignore packages to find the slot we will always return a
    slot-name from the specified package if it exists, otherwise we return the
    slot-name we found if its in a different package"
+  (unless o (return-from has-slot? nil))
   (let ((slot-names (class-slot-names o))
         lax)
     (or
