@@ -81,40 +81,46 @@
     (or (eql x y)
 	(equalp (cast x) (cast y)))))
 
-(defmethod plist-val (id list &key (test #'equalper) (key #'identity))
-  "get a value out of a plist based on its key"
-  (iter (for (k v) on list by #'cddr)
-	(if (funcall test (funcall key k) id)
-	    (return v))))
+(defgeneric plist-val (id list &key test key )
+  (:documentation "get a value out of a plist based on its key")
+  (:method (id list &key (test #'equalper) (key #'identity))
+    (iter (for (k v) on list by #'cddr)
+      (if (funcall test (funcall key k) id)
+          (return v)))))
 
-(defmethod rem-plist-val (id list &key (test #'equalper) (key #'identity))
-  "removes key & its value from plist returning
-   (values plist (list-of-values-removed))"
-  (iter
-    (for (k v) on list by #'cddr)
-    (cond ((funcall test (funcall key k) id)
-           (collect v into removed))
-          (T (collect k into plist)
-             (collect v into plist)))
-    (finally (return (values plist removed)))))
+(defgeneric rem-plist-val (id list &key test key)
+  (:documentation
+   "removes key & its value from plist returning
+   (values plist (list-of-values-removed))")
+  (:method (id list &key (test #'equalper) (key #'identity))
+    (iter
+      (for (k v) on list by #'cddr)
+      (cond ((funcall test (funcall key k) id)
+             (collect v into removed))
+            (T (collect k into plist)
+               (collect v into plist)))
+      (finally (return (values plist removed))))))
 
 (defmacro rem-plist-val! (id place &key (test #'equalper) (key #'identity))
   `(setf ,place
     (rem-plist-val ,id ,place :test ,test :key ,key)))
 
-(defmethod set-plist-val (new id list &key (test #'equalper) (key #'identity))
-  (iter
-    (with collected)
-    (for (k v) on list by #'cddr)
-    (collect k into res)
-    (if (funcall test (funcall key k) id)
-	(progn (setf collected T)
-	       (collect new into res))
-	(collect v into res))
-    (finally
-     (unless collected
-       (setf res (list* id new res)))
-     (return res))))
+(defgeneric set-plist-val (new id list &key test key)
+  (:documentation "If a key exists in the plist, set its value, otherwise add
+  this key to the dictionary")
+  (:method (new id list &key (test #'equalper) (key #'identity))
+    (iter
+      (with collected)
+      (for (k v) on list by #'cddr)
+      (collect k into res)
+      (if (funcall test (funcall key k) id)
+          (progn (setf collected T)
+                 (collect new into res))
+          (collect v into res))
+      (finally
+       (unless collected
+         (setf res (list* id new res)))
+       (return res)))))
 
 (defmacro set-plist-val! (new id place &key (test #'equalper) (key #'identity))
   `(setf ,place
