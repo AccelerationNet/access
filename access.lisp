@@ -42,6 +42,7 @@
    #:with-dot
    #:enable-dot-syntax
    #:disable-dot-syntax
+   #:split-dot-sym
 
    ;; arg-list-manip
    #:arg-list-key-value
@@ -562,9 +563,12 @@
 
 ;;;; DOT Syntax stuff
 
+(defun split-dot-sym (sym)
+  (iter (for piece in (cl-ppcre:split "\\." (string sym)))
+    (collect (intern piece (or (symbol-package sym) *package*)))))
+
 (defun translate-dot-sym (sym)
-  (let* ((pieces (iter (for piece in (cl-ppcre:split "\\." (string sym)))
-		       (collect (intern piece (or (symbol-package sym) *package*)))))
+  (let* ((pieces (split-dot-sym sym))
 	 (fns (iter (for sym in (rest pieces))
 		    (collect `(quote ,sym)))))
     (if (eql 1 (length pieces))
