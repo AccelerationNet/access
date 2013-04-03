@@ -102,7 +102,7 @@
                (collect v into plist)))
       (finally (return (values plist removed))))))
 
-(defmacro rem-plist-val! (id place &key (test #'equalper) (key #'identity))
+(defmacro rem-plist-val! (id place &key (test '#'equalper) (key '#'identity))
   `(setf ,place
     (rem-plist-val ,id ,place :test ,test :key ,key)))
 
@@ -123,7 +123,7 @@
          (setf res (list* id new res)))
        (return res)))))
 
-(defmacro set-plist-val! (new id place &key (test #'equalper) (key #'identity))
+(defmacro set-plist-val! (new id place &key (test '#'equalper) (key '#'identity))
   `(setf ,place
     (set-plist-val ,new ,id ,place :test ,test :key ,key)))
 
