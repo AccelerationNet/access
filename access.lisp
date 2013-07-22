@@ -8,8 +8,10 @@
    #:has-reader?
    #:has-writer?
    #:has-slot?
+   #:ensure-slot-name
    #:class-of-object
    #:class-slot-by-name
+   #:class-direct-slots
    #:class-direct-slot-names
    #:class-direct-slot-readers
    #:class-direct-slot-writers
@@ -175,6 +177,10 @@
   (awhen (class-of-object o)
     (%slot-writers (closer-mop:class-slots it))))
 
+(defun class-direct-slots (o)
+  (awhen (class-of-object o)
+    (closer-mop:class-direct-slots it)))
+
 (defun class-direct-slot-names (o)
   (awhen (class-of-object o)
     (mapcar
@@ -199,38 +205,47 @@
       (when (funcall test k name)
         (return (values s name))))))
 
-(defun has-reader? (o reader-name)
+(defun ensure-slot-name (sn)
+  (typecase sn
+    ((or symbol string) sn)
+    (closer-mop:slot-definition
+     (closer-mop:slot-definition-name sn))))
+
+(defun has-reader? (o reader-name
+                    &aux (match (ensure-slot-name reader-name)))
   "For o, does a reader function exist for it"
   (when (and o reader-name)
     (multiple-value-bind (readers names) (class-slot-readers o)
       (iter (for reader in readers)
-	    (for name in names)
-	    (when (typecase reader-name
-		    ((or keyword string) (string-equal (string name) (string reader-name)))
-		    (function (eql reader reader-name))
-		    (symbol (eql name reader-name))
-		    (T (access-warn "Not sure how to ~S maps to a function" reader-name)))
-	      (return (values reader name)))))))
+        (for name in names)
+        (when (typecase reader-name
+                (function (eql reader reader-name))
+                ((or symbol keyword string closer-mop:slot-definition)
+                 (equalper name match))
+                (T (access-warn "Not sure how to ~S maps to a function" reader-name)))
+          (return (values reader name)))))))
 
-(defun has-writer? (o writer-name)
+(defun has-writer? (o writer-name
+                    &aux (match (ensure-slot-name writer-name)))
   "For o, does a writer function exist for it?"
   (when (and o writer-name)
     (multiple-value-bind (writers wns sns) (class-slot-writers o)
-      (iter (for writer in writers)
-	    (for wn in wns)
-	    (for sn in sns)
-	    (when (typecase writer-name
-		    ((or keyword string)
-		       (or (string-equal (string sn) (string writer-name))
-			   (string-equal (princ-to-string wn) (string writer-name))))
-		    (function (eql writer writer-name))
-		    (list
-		       (or (equal wn writer-name)
-			   ;; setf-form ;; try again with just the slotname
-			   (has-writer? o (second writer-name))))
-		    (symbol (eql sn writer-name))
-		    (T (access-warn "Not sure how to ~S maps to a function" writer-name)))
-	      (return (values writer wn sn)))))))
+      (or
+       (iter (for writer in writers)
+         (for wn in wns)
+         (for sn in sns)
+         (when (typecase writer-name
+                 (function (eql writer writer-name))
+                 ((or symbol keyword string closer-mop:slot-definition)
+                  (or (equalper sn match) (equalper wn match)))
+                 (list
+                  ;; exact list match
+                  (equal wn writer-name))
+                 (T (access-warn "Not sure how to ~S maps to a function" writer-name)))
+           (return (values writer wn sn))))
+       ;; setf-form ;; try again with just the slotname
+       (when (listp writer-name)
+         (has-writer? o (second writer-name)))))))
 
 (defun has-slot? (o slot-name &key (lax? t))
   "Does o have a slot names slot-name
@@ -239,16 +254,17 @@
    slot-name from the specified package if it exists, otherwise we return the
    slot-name we found if its in a different package"
   (unless o (return-from has-slot? nil))
-  (let ((slot-names (class-slot-names o))
+  (let ((match (ensure-slot-name slot-name))
+        (slot-names (class-slot-names o))
         lax)
     (or
      (iter (for sn in slot-names)
        (cond
          ;; exact match - always return this first if we find it
-         ((eql sn slot-name) (return sn))
+         ((eql sn match) (return sn))
 
          ;; return the first lax match we find
-         ((and lax? (not lax) (equalper slot-name sn))
+         ((and lax? (not lax) (equalper sn match))
           (setf lax sn))
 
          ;; warn on any additional lax matches we find
@@ -264,7 +280,8 @@
 		    (return-from setf-if-applicable nil))))
     (setf fn
 	  (typecase fn
-	    ((or keyword string symbol) (has-writer? o fn))
+	    ((or keyword string symbol closer-mop:slot-definition)
+             (has-writer? o fn))
 	    (function fn)
 	    (T (access-warn "Not sure how to call a ~A" fn) ))))
   (when fn
@@ -284,7 +301,7 @@
 		    (return-from call-if-applicable nil))))
     (setf fn
 	  (typecase fn
-	    ((or keyword string) (has-reader? o fn))
+	    ((or keyword string closer-mop:slot-definition) (has-reader? o fn))
 	    (symbol (symbol-function fn))
 	    (function fn)
 	    (T (access-warn "Not sure how to call a ~A" fn) ))))

@@ -19,6 +19,12 @@
         (lisp-unit:*print-summary* t))
     (run-tests :all)))
 
+(defun run-a-test (test)
+  (let ((lisp-unit:*print-errors* t)
+        (lisp-unit:*print-failures* t)
+        (lisp-unit:*print-summary* t))
+    (run-tests (list test))))
+
 
 (defparameter +al+ `((:one . 1) ("two" . 2) ("three" . 3) (four . 4) (:5 . 5)))
 (defparameter +pl+ (list :one 1 "two" 2 "three" 3 'four 4 :5 5))
@@ -219,4 +225,19 @@
     (setf (access o 'no-access) :test3)
     (assert-eql :test3 (access o 'no-access) :slot-access-failed)
     ))
+
+(defclass slot-def-test-obj ()
+  ((acctexp :accessor acctexp :initarg :acctexp :initform nil)
+   (acct :accessor acct :initarg :acct :initform nil)
+   (acctexp2 :accessor acctexp2 :initarg :acctexp2 :initform nil)))
+
+(define-test slot-definition-tests
+  (let* ((o (make-instance 'slot-def-test-obj :acct 1008 :acctexp "1/1/2009" :acctexp2 "1/1/2011"))
+         (s (class-slot-by-name o "acct")))
+    (assert-eql 'acct (has-slot? o s))
+    (assert-eql #'(setf acct) (has-writer? o `(setf acct)))
+    (assert-eql #'(setf acct) (has-writer? o s))
+    (assert-eql #'(setf acct) (has-writer? o #'(setf acct)))
+    (assert-eql #'acct (has-reader? o s))
+    (assert-eql 1008 (access o s))))
 
