@@ -214,22 +214,14 @@
        (closer-mop:class-direct-slots it)))))
 
 (defun class-direct-slot-names (o)
-  (typecase o
-    (list (mapcan #'class-direct-slot-names o))
-    (t
-     (awhen (class-of-object o)
-       (mapcar
-        #'closer-mop:slot-definition-name
-        (closer-mop:class-direct-slots it))))))
+  (mapcar
+   #'closer-mop:slot-definition-name
+   (access:class-direct-slots o)))
 
 (defun class-slot-names (o)
-  (typecase o
-    (list (mapcan #'class-slot-names o))
-    (t
-     (awhen (class-of-object o)
-       (mapcar
-        #'closer-mop:slot-definition-name
-        (closer-mop:class-slots it))))))
+  (mapcar
+   #'closer-mop:slot-definition-name
+   (access:class-slots o)))
 
 (defun class-slot-by-name (o k &key (test #'equalper) )
   (setf o (class-of-object o))
