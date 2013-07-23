@@ -325,7 +325,10 @@
 
 (defun call-if-applicable (o fn)
   "See if there is a method named fn specialized on o, or a function named fn
-   and call it if so"
+   and call it if so
+
+   TODO: dont call macro functions/special forms, they are not applicable
+   "
   (handler-bind ((undefined-function
 		  (lambda (c) (declare (ignore c))
 		    (return-from call-if-applicable nil))))
