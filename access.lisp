@@ -11,6 +11,7 @@
    #:ensure-slot-name
    #:class-of-object
    #:class-slot-by-name
+   #:class-slots
    #:class-direct-slots
    #:class-direct-slot-names
    #:class-direct-slot-readers
@@ -156,46 +157,79 @@
 	(finally (return (values writers writer-names slot-names)))))
 
 (defun class-of-object ( o )
+  "returns the class of the object/symbol (or itself if it is a class),
+   if passed a list returns a list of these results"
   (typecase o
+    (list (mapcan #'class-of-object o))
     (symbol (find-class o))
     (standard-class o)
     (standard-object (class-of o))))
 
-(defun class-direct-slot-readers ( o )
-  (awhen (class-of-object o)
-    (%slot-readers (closer-mop:class-direct-slots it ))))
-
-(defun class-slot-readers ( o )
-  (awhen (class-of-object o)
-    (%slot-readers (closer-mop:class-slots it))))
-
-(defun class-direct-slot-writers (o)
-  (awhen (class-of-object o)
-    (%slot-writers (closer-mop:class-direct-slots it))))
-
-(defun class-slot-writers (o)
-  (awhen (class-of-object o)
-    (%slot-writers (closer-mop:class-slots it))))
-
-(defun class-direct-slots (o)
-  (awhen (class-of-object o)
-    (closer-mop:class-direct-slots it)))
-
-(defun class-direct-slot-names (o)
-  (awhen (class-of-object o)
-    (mapcar
-     #'closer-mop:slot-definition-name
-     (closer-mop:class-direct-slots it))))
-
-(defun class-slot-names (o)
-  (awhen (class-of-object o)
-    (mapcar
-     #'closer-mop:slot-definition-name
-     (closer-mop:class-slots it))))
+(defgeneric class-slots (o)
+  (:documentation "returns the slots for the class/obj or list of class/obj passed in")
+  (:method (o)
+    (typecase o
+      (list (mapcan #'class-slots o))
+      (t
+       (awhen (class-of-object o)
+         (closer-mop:class-slots it))))))
 
 (defun class-slot-definitions (o)
-  (setf o (class-of-object o))
-  (when o (closer-mop:class-slots o)))
+  (class-slots o))
+
+(defun class-direct-slot-readers ( o )
+  "ensures o is a class (or list thereof) and returns all the direct slot reader functions)"
+  (typecase o
+    (list (mapcan #'class-direct-slot-readers o))
+    (t
+     (awhen (class-of-object o)
+       (%slot-readers (closer-mop:class-direct-slots it ))))))
+
+(defun class-slot-readers ( o )
+  (typecase o
+    (list (mapcan #'class-slot-readers o))
+    (t
+     (awhen (class-of-object o)
+       (%slot-readers (closer-mop:class-slots it))))))
+
+(defun class-direct-slot-writers (o)
+  (typecase o
+    (list (mapcan #'class-direct-slot-writers o))
+    (t
+     (awhen (class-of-object o)
+       (%slot-writers (closer-mop:class-direct-slots it))))))
+
+(defun class-slot-writers (o)
+  (typecase o
+    (list (mapcan #'class-slot-writers o))
+    (T
+     (awhen (class-of-object o)
+       (%slot-writers (closer-mop:class-slots it))))))
+
+(defun class-direct-slots (o)
+  (typecase o
+    (list (mapcan #'class-direct-slots o))
+    (t
+     (awhen (class-of-object o)
+       (closer-mop:class-direct-slots it)))))
+
+(defun class-direct-slot-names (o)
+  (typecase o
+    (list (mapcan #'class-direct-slot-names o))
+    (t
+     (awhen (class-of-object o)
+       (mapcar
+        #'closer-mop:slot-definition-name
+        (closer-mop:class-direct-slots it))))))
+
+(defun class-slot-names (o)
+  (typecase o
+    (list (mapcan #'class-slot-names o))
+    (t
+     (awhen (class-of-object o)
+       (mapcar
+        #'closer-mop:slot-definition-name
+        (closer-mop:class-slots it))))))
 
 (defun class-slot-by-name (o k &key (test #'equalper) )
   (setf o (class-of-object o))
@@ -207,6 +241,7 @@
 
 (defun ensure-slot-name (sn)
   (typecase sn
+    (list (mapcar #'ensure-slot-name sn))
     ((or symbol string) sn)
     (closer-mop:slot-definition
      (closer-mop:slot-definition-name sn))))
