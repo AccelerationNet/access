@@ -165,11 +165,16 @@
     (standard-class o)
     (standard-object (class-of o))))
 
+(defun appended (fn lst)
+  "Mapcan caused all sorts of trouble with its NCONCing"
+  (iter (for o in lst)
+    (appending (funcall fn o))))
+
 (defgeneric class-slots (o)
   (:documentation "returns the slots for the class/obj or list of class/obj passed in")
   (:method (o)
     (typecase o
-      (list (mapcan #'class-slots o))
+      (list (appended #'access:class-slots o))
       (t
        (awhen (class-of-object o)
          (closer-mop:class-slots it))))))
@@ -180,35 +185,35 @@
 (defun class-direct-slot-readers ( o )
   "ensures o is a class (or list thereof) and returns all the direct slot reader functions)"
   (typecase o
-    (list (mapcan #'class-direct-slot-readers o))
+    (list (appended #'access:class-direct-slot-readers o))
     (t
      (awhen (class-of-object o)
        (%slot-readers (closer-mop:class-direct-slots it ))))))
 
 (defun class-slot-readers ( o )
   (typecase o
-    (list (mapcan #'class-slot-readers o))
+    (list (appended #'access:class-slot-readers o))
     (t
      (awhen (class-of-object o)
        (%slot-readers (closer-mop:class-slots it))))))
 
 (defun class-direct-slot-writers (o)
   (typecase o
-    (list (mapcan #'class-direct-slot-writers o))
+    (list (appended #'access:class-direct-slot-writers o))
     (t
      (awhen (class-of-object o)
        (%slot-writers (closer-mop:class-direct-slots it))))))
 
 (defun class-slot-writers (o)
   (typecase o
-    (list (mapcan #'class-slot-writers o))
+    (list (appended #'access:class-slot-writers o))
     (T
      (awhen (class-of-object o)
        (%slot-writers (closer-mop:class-slots it))))))
 
 (defun class-direct-slots (o)
   (typecase o
-    (list (mapcan #'class-direct-slots o))
+    (list (appended #'access:class-direct-slots o))
     (t
      (awhen (class-of-object o)
        (closer-mop:class-direct-slots it)))))
@@ -224,12 +229,10 @@
    (access:class-slots o)))
 
 (defun class-slot-by-name (o k &key (test #'equalper) )
-  (setf o (class-of-object o))
-  (when o
-    (iter (for s in (closer-mop:class-slots o))
-      (for name = (closer-mop:slot-definition-name s))
-      (when (funcall test k name)
-        (return (values s name))))))
+  (iter (for s in (access:class-slots o))
+    (for name = (ensure-slot-name s))
+    (when (funcall test k name)
+      (return (values s name)))))
 
 (defun ensure-slot-name (sn)
   (typecase sn
