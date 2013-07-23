@@ -160,7 +160,7 @@
   "returns the class of the object/symbol (or itself if it is a class),
    if passed a list returns a list of these results"
   (typecase o
-    (list (mapcan #'class-of-object o))
+    (keyword nil)
     (symbol (find-class o))
     (standard-class o)
     (standard-object (class-of o))))
@@ -249,7 +249,7 @@
 (defun has-reader? (o reader-name
                     &aux (match (ensure-slot-name reader-name)))
   "For o, does a reader function exist for it"
-  (when (and o reader-name)
+  (when (and o reader-name (typep o 'standard-object))
     (multiple-value-bind (readers names) (class-slot-readers o)
       (iter (for reader in readers)
         (for name in names)
@@ -263,7 +263,7 @@
 (defun has-writer? (o writer-name
                     &aux (match (ensure-slot-name writer-name)))
   "For o, does a writer function exist for it?"
-  (when (and o writer-name)
+  (when (and o writer-name (typep o 'standard-object))
     (multiple-value-bind (writers wns sns) (class-slot-writers o)
       (or
        (iter (for writer in writers)
@@ -288,7 +288,7 @@
    if lax? we will ignore packages to find the slot we will always return a
    slot-name from the specified package if it exists, otherwise we return the
    slot-name we found if its in a different package"
-  (unless o (return-from has-slot? nil))
+  (unless (and o (typep o 'standard-object)) (return-from has-slot? nil))
   (let ((match (ensure-slot-name slot-name))
         (slot-names (class-slot-names o))
         lax)
