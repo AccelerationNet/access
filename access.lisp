@@ -266,10 +266,15 @@
          (for sn in sns)
          (when (typecase writer-name
                  (function (eql writer writer-name))
-                 ((or symbol keyword string closer-mop:slot-definition)
-                  (or (equalper sn match) (equalper wn match)))
-                 (list
-                  ;; exact list match
+                 (string
+                  (or (equalper sn match) ;; handle "slot-name" matches
+                      ;; handle "(setf slot-name)" matches
+                      (equalper (princ-to-string wn) match)))
+                 ((or symbol keyword closer-mop:slot-definition)
+                  (or (equalper sn match) ;; handle slot-name matches
+                      (equalper wn match) ;; handle (setf slot-name) matches
+                      ))
+                 (list ;; exact list match
                   (equal wn writer-name))
                  (T (access-warn "Not sure how to ~S maps to a function" writer-name)))
            (return (values writer wn sn))))

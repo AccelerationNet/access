@@ -13,6 +13,13 @@
 
 (enable-dot-syntax)
 
+(defclass mop-test-object ()
+  ((slot-a :accessor slot-a :initarg :slot-a :initform nil)
+   (slot-b :accessor slot-b :initarg :slot-b :initform nil)
+   (slot-c :accessor slot-c :initarg :slot-c :initform nil)))
+
+(defparameter +mop+ (make-instance 'mop-test-object))
+
 (defun run-all-tests ()
   (let ((lisp-unit:*print-errors* t)
         (lisp-unit:*print-failures* t)
@@ -197,6 +204,14 @@
       (assert-true warned? "We got a warning for multi-slot-matches"))
     (assert-eql 'access-test-other::my-slot (has-slot? o 'access-test-other::my-slot))))
 
+(define-test has-slot?2
+  (assert-true (has-slot? +mop+ 'slot-a))
+  (assert-true (has-slot? +mop+ :slot-a))
+  (assert-true (has-slot? +mop+ "slot-a"))
+  (assert-false (has-slot? +mop+ "slot-d"))
+  (assert-false (has-slot? +mop+ 'slot-d))
+  (assert-false (has-slot? +mop+ :slot-d)))
+
 (defclass accessed-object ()
   ((my-slot :initarg :my-slot :initform nil)
    (no-access :initarg :no-access :initform nil)
@@ -241,3 +256,27 @@
     (assert-eql #'acct (has-reader? o s))
     (assert-eql 1008 (access o s))))
 
+
+(define-test test-has-reader?
+  (assert-true (has-reader? +mop+ #'slot-a))
+  (assert-true (has-reader? +mop+ 'slot-a))
+  (assert-true (has-reader? +mop+ :slot-a))
+  (assert-true (has-reader? +mop+ "slot-a"))
+  (assert-false (has-reader? +mop+ "slot-d"))
+  (assert-false (has-reader? +mop+ 'slot-d))
+  (assert-false (has-reader? +mop+ :slot-d)))
+
+(define-test test-has-writer?
+  (assert-true (has-writer? +mop+ #'(setf slot-a)))
+  (assert-true (has-writer? +mop+ 'slot-a))
+  (assert-true (has-writer? +mop+ :slot-a))
+  (assert-true (has-writer? +mop+ "slot-a"))
+
+  (assert-true (has-writer? +mop+ '(setf slot-a)))
+  (assert-true (has-writer? +mop+ '(setf :slot-a)))
+  (assert-true (has-writer? +mop+ '(setf "slot-a")))
+  (assert-true (has-writer? +mop+ "(setf slot-a)"))
+  
+  (assert-false (has-writer? +mop+ "slot-d"))
+  (assert-false (has-writer? +mop+ 'slot-d))
+  (assert-false (has-writer? +mop+ :slot-d)))
