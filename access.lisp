@@ -328,21 +328,22 @@
 	(when (typep fn 'function)
 	  (values (funcall fn new o) T)))))
 
-(defun call-if-applicable (o fn)
+(defun call-if-applicable (o fn &key (warn-if-not-a-fn? t))
   "See if there is a method named fn specialized on o, or a function named fn
    and call it if so
 
    TODO: dont call macro functions/special forms, they are not applicable
    "
   (handler-bind ((undefined-function
-		  (lambda (c) (declare (ignore c))
-		    (return-from call-if-applicable nil))))
+                   (lambda (c) (declare (ignore c))
+                     (return-from call-if-applicable nil))))
     (setf fn
 	  (typecase fn
 	    ((or keyword string closer-mop:slot-definition) (has-reader? o fn))
 	    (symbol (symbol-function fn))
 	    (function fn)
-	    (T (access-warn "Not sure how to call a ~A" fn) ))))
+	    (T (when warn-if-not-a-fn?
+                 (access-warn "Not sure how to call a ~A" fn))))))
   (when fn
     ;; complex if/whens instead of ands/ors because a standard generic function
     ;; is a function, but we dont want to call it if not applicable
@@ -360,8 +361,9 @@
 	(setf o (call-if-applicable o fn)))
   o)
 
-(defun access (o k &key type (test #'equalper) (key #'identity))
-  "Access plists, alists, hashtables and clos objects all through the same interface"
+(defun access (o k &key type (test #'equalper) (key #'identity) skip-call?)
+  "Access plists, alists, hashtables and clos objects all through the same interface
+   skip-call, skips trying to call "
   (if (null type)
       (typecase o
 	(list (if (consp (first o))
@@ -369,7 +371,10 @@
 		  (access o k :type :plist :test test :key key)))
 	(hash-table (access o k :type :hash-table :test test :key key))
 	(standard-object (access o k :type :object :test test :key key)))
-      (multiple-value-bind (res called) (call-if-applicable o k)
+      ;; lets suppress the warning if it is just being called through access
+      (multiple-value-bind (res called)
+          (unless skip-call?
+            (call-if-applicable o k :warn-if-not-a-fn? nil))
 	(if called
 	    res
 	    (case type
