@@ -550,7 +550,7 @@
        (t class-name)))
     (symbol class-name)))
 
-(defmacro with-access-values (bindings obj &body body)
+(defmacro with-access-values ((&rest bindings) obj &body body)
   "A macro which binds local variables from accessed values on object
    according to bindings
 
