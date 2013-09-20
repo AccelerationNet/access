@@ -8,6 +8,7 @@
    #:has-reader?
    #:has-writer?
    #:has-slot?
+   #:get-slot-value
    #:ensure-slot-name
    #:class-of-object
    #:class-slot-by-name
@@ -281,6 +282,11 @@
        ;; setf-form ;; try again with just the slotname
        (when (listp writer-name)
          (has-writer? o (second writer-name)))))))
+
+(defun get-slot-value (o sn)
+  "like slot-value but without boundedness errors and works with slot definitions"
+  (setf sn (ensure-slot-name sn))
+  (and (slot-boundp o sn) (slot-value o sn)))
 
 (defun has-slot? (o slot-name &key (lax? t))
   "Does o have a slot names slot-name
