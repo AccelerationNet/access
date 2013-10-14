@@ -41,6 +41,13 @@ any of the slots.
 The '("id" :type :alist) is required because ucw expects an alist, but
 access will default to plist when asked to set on a nil.
 
+## value mutation
+
+Access supports limited mutation of values while accessing by sending
+the function as another access.  Any value mutation should be a fixed
+point finder such as a type translator. Otherwise the function will
+yield unexpected results.
+
 ### Limitations
 
  * Accessors should share slot names for this to work best.  This is

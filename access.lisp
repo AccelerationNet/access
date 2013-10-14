@@ -317,22 +317,21 @@
   "If we find a setf function named (setf fn) that can operate on o then call
    that with value new "
   (handler-bind ((undefined-function
-		  (lambda (c) (declare (ignore c))
-		    (return-from setf-if-applicable nil))))
+                   (lambda (c) (declare (ignore c))
+                     (return-from setf-if-applicable nil))))
     (setf fn
 	  (typecase fn
 	    ((or keyword string symbol closer-mop:slot-definition)
-             (has-writer? o fn))
+             (or (has-writer? o fn)
+                 (ignore-errors (fdefinition `(setf ,fn)))))
 	    (function fn)
 	    (T (access-warn "Not sure how to call a ~A" fn) ))))
-  (when fn
-    ;; complex if/whens instead of ands/ors because a standard generic function
-    ;; is a function, but we dont want to call it if not applicable
-    (if (typep fn 'standard-generic-function)
-	(when (compute-applicable-methods fn (list new o))
-	  (values (funcall fn new o) T))
-	(when (typep fn 'function)
-	  (values (funcall fn new o) T)))))
+  (etypecase fn
+    (null nil)
+    (standard-generic-function
+     (when (compute-applicable-methods fn (list new o))
+       (values (funcall fn new o) T)))
+    (function (values (funcall fn new o) T))))
 
 (defun call-if-applicable (o fn &key (warn-if-not-a-fn? t))
   "See if there is a method named fn specialized on o, or a function named fn
@@ -350,16 +349,17 @@
 	    (function fn)
 	    (T (when warn-if-not-a-fn?
                  (access-warn "Not sure how to call a ~A" fn))))))
-  (when fn
-    ;; complex if/whens instead of ands/ors because a standard generic function
-    ;; is a function, but we dont want to call it if not applicable
-    (handler-case 
-	(if (typep fn 'standard-generic-function)
-	    (when (compute-applicable-methods fn (list o))
-	      (values (funcall fn o) T))
-	    (when (typep fn 'function)
-	      (values (funcall fn o) T)))
-      (unbound-slot (c) (declare (ignore c))))))
+
+  ;; complex if/whens instead of ands/ors because a standard generic function
+  ;; is a function, but we dont want to call it if not applicable
+  (handler-case
+      (etypecase fn
+        (null nil)
+        (standard-generic-function
+         (when (compute-applicable-methods fn (list o))
+           (values (funcall fn o) T)))
+        (function (values (funcall fn o) T)))
+    (unbound-slot (c) (declare (ignore c)))))
 
 (defun call-applicable-fns (o &rest fns)
   "For an object and a list of fn/fn names, call-if-applicable repeatedly"
@@ -373,93 +373,111 @@
   ;; make these easy to have the same defaults everywhere
   (unless test (setf test #'equalper))
   (unless key (setf key #'identity))
-  (if (null type)
-      (typecase o
-	(list (if (consp (first o))
-		  (access o k :type :alist :test test :key key)
-		  (access o k :type :plist :test test :key key)))
-	(hash-table (access o k :type :hash-table :test test :key key))
-	(standard-object (access o k :type :object :test test :key key)))
-      ;; lets suppress the warning if it is just being called through access
-      (multiple-value-bind (res called)
-          (unless skip-call?
-            (call-if-applicable o k :warn-if-not-a-fn? nil))
-	(if called
-	    res
-	    (case type
-	      (:plist
-               (plist-val k o :test test :key key))
-	      (:alist
-               (cdr (assoc k o :test test :key key)))
-	      (:hash-table
-               (multiple-value-bind (res found) (gethash k o)
-                 (if found
-                     res
-                     (awhen (ignore-errors (string k))
-                       (gethash it o)))))
-	      (:object
-                  (let ((actual-slot-name (has-slot? o k)))
-                     (cond
-                       ;; same package as requested, must be no accessor so handle slots
-                       ((eql actual-slot-name k)
-                        (when (slot-boundp o k)
-                          (slot-value o k)))
+  (flet ((maybe-call-and-return ()
+           (multiple-value-bind (res called)
+               (unless skip-call?
+                 ;; lets suppress the warning if it is just being called through access
+                 (call-if-applicable o k :warn-if-not-a-fn? nil))
+             (when called
+               (return-from access res)))))
+    (cond
+      ((null type)
+       (typecase o
+         (list (if (consp (first o))
+                   (access o k :type :alist :test test :key key)
+                   (access o k :type :plist :test test :key key)))
+         (hash-table (access o k :type :hash-table :test test :key key))
+         (standard-object (access o k :type :object :test test :key key))
+         ;; we are not recognizably something, perhaps we are
+         ;; just mutating a value with a function?, either way no recursion
+         (t (maybe-call-and-return))))
+      (t
+       (maybe-call-and-return)
+       (case type
+         (:plist
+          (plist-val k o :test test :key key))
+         (:alist
+          (cdr (assoc k o :test test :key key)))
+         (:hash-table
+          (multiple-value-bind (res found) (gethash k o)
+            (if found
+                res
+                (awhen (ignore-errors (string k))
+                  (gethash it o)))))
+         (:object
+             (let ((actual-slot-name (has-slot? o k)))
+               (cond
+                 ;; same package as requested, must be no accessor so handle slots
+                 ((eql actual-slot-name k)
+                  (when (slot-boundp o k)
+                    (slot-value o k)))
 
-                       ;; lets recheck for an accessor in the correct package
-                       (actual-slot-name
-                        (access o actual-slot-name :type type :test test :key key))
-                       ))))))))
+                 ;; lets recheck for an accessor in the correct package
+                 (actual-slot-name
+                  (access o actual-slot-name :type type :test test :key key))
+                 ))))))))
 
 (defun set-access (new o k &key type (test #'equalper) (key #'identity))
   "set places in plists, alists, hashtables and clos objects all through the same interface"
   ;; make these easy to have the same defaults everywhere
   (unless test (setf test #'equalper))
   (unless key (setf key #'identity))
-  (if (null type)
-      (typecase o
-        (list (if (consp (first o))
-                  (set-access new o k :type :alist :test test :key key)
-                  (set-access new o k :type :plist :test test :key key)))
-        (hash-table (set-access new o k :type :hash-table :test test :key key))
-        (standard-object (set-access new o k :type :object :test test :key key)))
-      (multiple-value-bind (res called) (setf-if-applicable new o k)
-        (if called
-            (values res o)
-            (values
-             new
-             (case type
-               (:plist
-                (set-plist-val new k o :test test :key key))
-               (:alist
-                (aif (assoc k o :test test :key key)
-                     (progn (setf (cdr it) new) o)
-                     (list* (cons k new) o)))
-               (:hash-table
-                (let ((skey (string k)))
-                  (multiple-value-bind (res found) (gethash k o)
-                    (declare (ignore res))
-                    (multiple-value-bind (sres sfound)
-                        (awhen skey (gethash it o))
-                      (declare (ignore sres))
-                      (cond
-                        (found (setf (gethash k o) new))
-                        ((or sfound skey) (setf (gethash skey o) new))
-                        (T (setf (gethash k o) new)))
-                      (if found
-                          (setf (gethash k o) new)))
-                    ))
-                o)
-               (:object
-                   (let ((actual-slot-name (has-slot? o k)))
-                     (cond
-                       ;; same package so there must be no accessor
-                       ((eql actual-slot-name k)
-                        (setf (slot-value o k) new))
-                       ;; different package, but we have a slot, so lets look for its accessor
-                       (actual-slot-name
-                        (set-access new o actual-slot-name :type type :test test :key key))
-                       ))
-                 o)))))))
+  (flet ((maybe-set-and-return ( &optional return-res? )
+           (multiple-value-bind (res called)
+               (setf-if-applicable new o k)
+             (when called
+               ;; if we were called on nil, but returned a value, then chances
+               ;; are the value is also the new-place-value (see: set-accesses)
+               (return-from set-access (values res (if return-res?
+                                                       res
+                                                       (or o res))))))))
+    (cond
+      ((null type)
+       (typecase o
+         (list (if (consp (first o))
+                   (set-access new o k :type :alist :test test :key key)
+                   (set-access new o k :type :plist :test test :key key)))
+         (hash-table (set-access new o k :type :hash-table :test test :key key))
+         (standard-object (set-access new o k :type :object :test test :key key))
+         ;; not really an object access, so probably a value mutation
+         ;; so just return the res in both positions
+         (T (maybe-set-and-return t))))
+      (t
+       (maybe-set-and-return)
+       (values new
+               (case type
+                 (:plist
+                  (set-plist-val new k o :test test :key key))
+                 (:alist
+                  (aif (assoc k o :test test :key key)
+                       (progn (setf (cdr it) new) o)
+                       (list* (cons k new) o)))
+                 (:hash-table
+                  (let ((skey (string k)))
+                    (multiple-value-bind (res found) (gethash k o)
+                      (declare (ignore res))
+                      (multiple-value-bind (sres sfound)
+                          (awhen skey (gethash it o))
+                        (declare (ignore sres))
+                        (cond
+                          (found (setf (gethash k o) new))
+                          ((or sfound skey) (setf (gethash skey o) new))
+                          (T (setf (gethash k o) new)))
+                        (if found
+                            (setf (gethash k o) new)))
+                      ))
+                  o)
+                 (:object
+                     (let ((actual-slot-name (has-slot? o k)))
+                       (cond
+                         ;; same package so there must be no accessor
+                         ((eql actual-slot-name k)
+                          (setf (slot-value o k) new))
+                         ;; different package, but we have a slot, so lets look for its accessor
+                         (actual-slot-name
+                          (set-access new o actual-slot-name :type type :test test :key key))
+                         ))
+                   o)))))))
 
 (define-setf-expander access (place k
                               &key type test key
@@ -502,7 +520,8 @@
                                (first more) (rest more))
                     (setf (access o k :test test :type type :key key) new-place-val)
                     (values new o)))
-                 (T (set-access new o k :test test :type type :key key))))))
+                 (T
+                  (set-access new o k :test test :type type :key key))))))
     (rec-set o (first keys) (rest keys))))
 
 (define-setf-expander accesses (place &rest keys

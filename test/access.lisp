@@ -296,3 +296,20 @@
     (assert-equal '((:a . "a")) (accesses o 'pl '(:my-new-alist :type :plist)))
     (setf (accesses o 'pl '(:my-new-alist :type :plist) '("b" :type :alist)) 'b)
     (assert-equal 'b (accesses o 'pl '(:my-new-alist :type :plist) '("b" :type :alist)))))
+
+
+
+;;;; Value mutation
+(defun add-one (n)
+  (adwutils:spy-break :add n )
+  (if n (+ 1 n) 1))
+(defun (setf add-one) (n o)
+  (declare (ignore o))
+  (adwutils:spy-break :set n )
+  (add-one n))
+
+(define-test value-mutation
+  (let ((o (make-obj)))
+    (assert-equal 2 (accesses o :one 'add-one))
+    (setf (accesses o :one 'add-one) 10)
+    (assert-equal 11 (accesses o :one 'add-one))))
