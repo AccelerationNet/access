@@ -325,14 +325,12 @@
              (has-writer? o fn))
 	    (function fn)
 	    (T (access-warn "Not sure how to call a ~A" fn) ))))
-  (when fn
-    ;; complex if/whens instead of ands/ors because a standard generic function
-    ;; is a function, but we dont want to call it if not applicable
-    (if (typep fn 'standard-generic-function)
-	(when (compute-applicable-methods fn (list new o))
-	  (values (funcall fn new o) T))
-	(when (typep fn 'function)
-	  (values (funcall fn new o) T)))))
+  (etypecase fn
+    (null nil)
+    (standard-generic-function
+     (when (compute-applicable-methods fn (list new o))
+       (values (funcall fn new o) T)))
+    (function (values (funcall fn new o) T))))
 
 (defun call-if-applicable (o fn &key (warn-if-not-a-fn? t))
   "See if there is a method named fn specialized on o, or a function named fn
@@ -350,16 +348,15 @@
 	    (function fn)
 	    (T (when warn-if-not-a-fn?
                  (access-warn "Not sure how to call a ~A" fn))))))
-  (when fn
-    ;; complex if/whens instead of ands/ors because a standard generic function
-    ;; is a function, but we dont want to call it if not applicable
-    (handler-case 
-	(if (typep fn 'standard-generic-function)
-	    (when (compute-applicable-methods fn (list o))
-	      (values (funcall fn o) T))
-	    (when (typep fn 'function)
-	      (values (funcall fn o) T)))
-      (unbound-slot (c) (declare (ignore c))))))
+
+  (handler-case
+      (etypecase fn
+        (null nil)
+        (standard-generic-function
+         (when (compute-applicable-methods fn (list o))
+           (values (funcall fn o) T)))
+        (function (values (funcall fn o) T)))
+    (unbound-slot (c) (declare (ignore c)))))
 
 (defun call-applicable-fns (o &rest fns)
   "For an object and a list of fn/fn names, call-if-applicable repeatedly"
