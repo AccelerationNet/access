@@ -370,6 +370,9 @@
 (defun access (o k &key type (test #'equalper) (key #'identity) skip-call?)
   "Access plists, alists, hashtables and clos objects all through the same interface
    skip-call, skips trying to call "
+  ;; make these easy to have the same defaults everywhere
+  (unless test (setf test #'equalper))
+  (unless key (setf key #'identity))
   (if (null type)
       (typecase o
 	(list (if (consp (first o))
@@ -409,6 +412,9 @@
 
 (defun set-access (new o k &key type (test #'equalper) (key #'identity))
   "set places in plists, alists, hashtables and clos objects all through the same interface"
+  ;; make these easy to have the same defaults everywhere
+  (unless test (setf test #'equalper))
+  (unless key (setf key #'identity))
   (if (null type)
       (typecase o
         (list (if (consp (first o))
@@ -455,7 +461,8 @@
                        ))
                  o)))))))
 
-(define-setf-expander access (place key
+(define-setf-expander access (place k
+                              &key type test key
                               &environment env
                               &aux (new-val (gensym "NEW-VAL"))
                               (place-store (gensym "PLACE")))
@@ -465,16 +472,18 @@
           ()   ;; not using temp vals
           `(,new-val)
           `(multiple-value-bind (,new-val ,place-store)
-            (set-access ,new-val ,place ,key)
+            (set-access ,new-val ,place ,k :test ,test :type ,type :key ,key)
             (setf ,place ,place-store)
             ,new-val)
-          `(access ,place ,key)))
+          `(access ,place ,k :test ,test :type ,type :key ,key )))
 
 (defun accesses (o &rest keys)
   "keep accessing keys on resulting objects
    eg: (accesses o k1 k2) => (access (access o k1) k2)"
   (iter (for k in keys)
-    (setf o (access o k)))
+    (destructuring-bind (k &key type test key)
+        (alexandria:ensure-list k)
+      (setf o (access o k :test test :type type :key key ))))
   o)
 
 (defun set-accesses (new o &rest keys)
@@ -485,13 +494,15 @@
    (so for a plist / alist you have a ref to the val and the full list)
   "
   (labels ((rec-set (o key more)
-             (cond
-               (more
-                (multiple-value-bind (new new-place-val)
-                    (rec-set (access o key) (first more) (rest more))
-                  (setf (access o key) new-place-val)
-                  (values new o)))
-               (T (set-access new o key)))))
+             (destructuring-bind (k &key type test key) (alexandria:ensure-list key)
+               (cond
+                 (more
+                  (multiple-value-bind (new new-place-val)
+                      (rec-set (access o k :test test :type type :key key)
+                               (first more) (rest more))
+                    (setf (access o k :test test :type type :key key) new-place-val)
+                    (values new o)))
+                 (T (set-access new o k :test test :type type :key key))))))
     (rec-set o (first keys) (rest keys))))
 
 (define-setf-expander accesses (place &rest keys

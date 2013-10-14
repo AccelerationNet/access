@@ -25,6 +25,22 @@ This library will probably appeal most to new comers to the language
 as everyone else will probably be happy just calling each type of
 access according to its own api.
 
+### accesses, (setf accesses)
+
+These can be handy for modifying deeply nested structures without lots
+of intermediary bindings eg:
+
+(setf (accesses ucw::*context* 'ucw::context.request
+               ucw::parameters '("id" :type :alist)) 
+      2043) 
+
+Will correctly set the "id" parameter of the request to 2043. 
+It will not signal an error if request is *context* is unbound, nor 
+any of the slots.
+
+The '("id" :type :alist) is required because ucw expects an alist, but
+access will default to plist when asked to set on a nil.
+
 ### Limitations
 
  * Accessors should share slot names for this to work best.  This is

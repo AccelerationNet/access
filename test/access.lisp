@@ -280,3 +280,19 @@
   (assert-false (has-writer? +mop+ "slot-d"))
   (assert-false (has-writer? +mop+ 'slot-d))
   (assert-false (has-writer? +mop+ :slot-d)))
+
+(define-test deep-null-alist
+  (let ((o (make-obj)))
+    (setf (accesses o 'pl '(:my-new-alist :type :plist) '(:a :type :alist)) "a")
+    (assert-equal "a" (accesses o 'pl '(:my-new-alist :type :plist) '(:a :type :alist)))
+    (assert-equal '((:a . "a")) (accesses o 'pl '(:my-new-alist :type :plist)))
+    (setf (accesses o 'pl '(:my-new-alist :type :plist) '("b" :type :alist)) 'b)
+    (assert-equal 'b (accesses o 'pl '(:my-new-alist :type :plist) '("b" :type :alist)))
+
+    (setf (accesses o 'pl) nil)
+
+    (setf (accesses o 'pl '(:my-new-alist :type :plist) '(:a :type :alist)) "a")
+    (assert-equal "a" (accesses o 'pl '(:my-new-alist :type :plist) '(:a :type :alist)))
+    (assert-equal '((:a . "a")) (accesses o 'pl '(:my-new-alist :type :plist)))
+    (setf (accesses o 'pl '(:my-new-alist :type :plist) '("b" :type :alist)) 'b)
+    (assert-equal 'b (accesses o 'pl '(:my-new-alist :type :plist) '("b" :type :alist)))))
