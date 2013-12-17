@@ -178,6 +178,7 @@
       (list (appended #'access:class-slots o))
       (t
        (awhen (class-of-object o)
+         (closer-mop:ensure-finalized it)
          (closer-mop:class-slots it))))))
 
 (defun class-slot-definitions (o)
