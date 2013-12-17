@@ -217,6 +217,7 @@
     (list (appended #'access:class-direct-slots o))
     (t
      (awhen (class-of-object o)
+       (closer-mop:ensure-finalized it)
        (closer-mop:class-direct-slots it)))))
 
 (defun class-direct-slot-names (o)
