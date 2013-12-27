@@ -25,9 +25,9 @@
                         :serial t
                         :components ((:file "access")
                                      (:file "arg-list-manipulation"))))
-  :depends-on (:access :lisp-unit))
+  :depends-on (:access :lisp-unit2))
 
 (defmethod asdf:perform ((o asdf:test-op) (c (eql (find-system :access))))
   (asdf:oos 'asdf:load-op :access-test)
   (let ((*package* (find-package :access-test)))
-    (eval (read-from-string "(run-tests :all)"))))
+    (eval (read-from-string "(run-all-tests)"))))

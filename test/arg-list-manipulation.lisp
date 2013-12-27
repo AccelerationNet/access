@@ -1,6 +1,6 @@
 (in-package :access-test)
 
-(define-test arg-list-key-value
+(define-test arg-list-key-value-test (:tags '(arglist))
   (assert-equal
    #\b (arg-list-key-value
         :key2
@@ -37,7 +37,7 @@
 (defun setal (new key list)
   (set-arg-list-key-value new key list))
 
-(define-test set-arg-list-key-value
+(define-test set-arg-list-key-value-test (:tags '(arglist))
   (assert-equal
    #\d (write-then-read #\d :key2 '(:key1 #\a :key2 #\b :key3 #\c) ))
   (assert-equal
@@ -71,7 +71,7 @@
    '(:a :b :c :d :key2 #\d)
    (setal #\d :key2 '(:a :b :c :d))))
 
-(define-test rem-arg-list-key-value
+(define-test rem-arg-list-key-value-test (:tags '(arglist))
   (assert-equal
    '(:key1 #\a :key3 #\c)
    (rem-arg-list-key-value :key2 '(:key1 #\a :key2 #\b :key3 #\c) ))
@@ -100,7 +100,7 @@
    '(:a :b :c :d :key2 #\d)
    (setal #\d :key2 '(:a :b :c :d))))
 
-(define-test set-arg-list-key-value-nulls
+(define-test set-arg-list-key-value-nulls (:tags '(arglist))
   (assert-equal
    #\d (write-then-read #\d :key2 '() ))
   (assert-equal
