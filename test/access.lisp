@@ -21,8 +21,9 @@
 (defparameter +mop+ (make-instance 'mop-test-object))
 
 (defun run-all-tests ()
-  (with-summary (:name :access)
-    (run-tests :package :access-test)))
+  (run-tests :package :access-test
+             :name :access
+             :run-contexts #'with-summary-context))
 
 (defun run-a-test (test)
   (with-summary (:name :access)
@@ -190,10 +191,11 @@
 (define-test has-slot-test ()
   (let ((o (make-instance 'multi-package-test-obj)))
     (assert-eql 'my-slot (has-slot? o 'my-slot))
-    ;; seems like this *could be* implementation dependent based on the ordering returned from
-    ;; the mop... Lets hope for the sanest (eg first listed)
-    (assert-warning 'access-warning
-                    (assert-eql 'my-slot (has-slot? o :my-slot)))
+    (assert-warning
+     'access-warning
+     ;; seems like this *could be* implementation dependent based on the ordering returned from
+     ;; the mop... Lets hope for the sanest (eg first listed)
+     (assert-eql 'my-slot (has-slot? o :my-slot)))
     (assert-eql 'access-test-other::my-slot (has-slot? o 'access-test-other::my-slot))))
 
 (define-test has-slot?2 ()
