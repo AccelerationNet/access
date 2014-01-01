@@ -182,21 +182,25 @@
 	    (assert-equal 4 rest.pl2.four))
 	  (assert-equal 4 v.four))))
 
-(defclass multi-package-test-obj ()
-  ((my-slot :accessor my-slot :initarg :my-slot :initform nil)
-   (access-test-other::my-slot :accessor access-test-other::my-slot
-                               :initarg :my-slot :initform nil))
-  (:documentation "Do you hate sanity?"))
+;; sbcl started raising (rightly) style warnings about this
+(handler-bind ((style-warning #'muffle-warning))
+  (defclass multi-package-test-obj ()
+    ((my-slot :accessor my-slot :initarg :my-slot :initform nil)
+     (access-test-other::my-slot :accessor access-test-other::my-slot
+                                 :initarg :my-slot :initform nil))
+    (:documentation "Do you hate sanity?"))
+  (c2mop:finalize-inheritance (find-class 'multi-package-test-obj)))
 
 (define-test has-slot-test ()
   (let ((o (make-instance 'multi-package-test-obj)))
-    (assert-eql 'my-slot (has-slot? o 'my-slot))
-    (assert-warning
-     'access-warning
-     ;; seems like this *could be* implementation dependent based on the ordering returned from
-     ;; the mop... Lets hope for the sanest (eg first listed)
-     (assert-eql 'my-slot (has-slot? o :my-slot)))
-    (assert-eql 'access-test-other::my-slot (has-slot? o 'access-test-other::my-slot))))
+    (assert-warning 'access-warning
+      ;; seems like this *could be* implementation dependent based on the ordering returned from
+      ;; the mop... Lets hope for the sanest (eg first listed)
+      (assert-eql 'my-slot (has-slot? o :my-slot)))
+    (assert-no-warning 'access-warning
+      (assert-eql 'my-slot (has-slot? o 'my-slot)))
+    (assert-no-warning 'access-warning
+      (assert-eql 'access-test-other::my-slot (has-slot? o 'access-test-other::my-slot)))))
 
 (define-test has-slot?2 ()
   (assert-true (has-slot? +mop+ 'slot-a))

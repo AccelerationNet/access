@@ -70,7 +70,7 @@
 	      (format-control c)
 	      (format-args c)))))
 
-(define-condition access-warning (access-condition warning) ())
+(define-condition access-warning (warning access-condition) ())
 
 (defun access-warn (message &rest args)
   (warn (make-condition 'access-warning
@@ -291,7 +291,7 @@
   (and (slot-boundp o sn) (slot-value o sn)))
 
 (defun has-slot? (o slot-name &key (lax? t))
-  "Does o have a slot names slot-name
+  "Does o have a slot named slot-name
 
    if lax? we will ignore packages to find the slot we will always return a
    slot-name from the specified package if it exists, otherwise we return the
@@ -304,16 +304,16 @@
      (iter (for sn in slot-names)
        (cond
          ;; exact match - always return this first if we find it
-         ((eql sn match) (return sn))
-
-         ;; return the first lax match we find
-         ((and lax? (not lax) (equalper sn match))
-          (setf lax sn))
-
-         ;; warn on any additional lax matches we find
-         ((and lax? lax (equalper slot-name sn))
-          (access-warn "Multiple slots inexactly matched for ~a on ~a" slot-name o))))
-     lax)))
+         ((eql sn match)
+          (return sn))
+         ;; save the lax matches
+         ((and lax? (equalper sn match))
+          (push sn lax))))
+     (cond
+       ((< 1 (length lax))
+        (access-warn "Multiple slots inexactly matched for ~a on ~a" slot-name o)
+        (first (reverse lax)))
+       (t (first lax))))))
 
 (defun setf-if-applicable (new o fn)
   "If we find a setf function named (setf fn) that can operate on o then call
