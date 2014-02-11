@@ -133,7 +133,9 @@
 
 (defun %slot-readers (slots)
   (iter (for slot in (ensure-list slots))
-	(for reader-name = (or (first (closer-mop::slot-definition-readers slot))
+	(for reader-name = (or (ignore-errors
+                                ;; ESD's might not have this slot apparently
+                                (first (closer-mop::slot-definition-readers slot)))
   ;; NB: We should probably check for a reader fn here before assuming
   ;; the slot name is a reader-fn, but I couldnt find a cross platform way
   ;; of doing this
