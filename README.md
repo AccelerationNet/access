@@ -14,6 +14,7 @@ These functions allow unified access to these data structures:
  * plists
  * alists
  * hash-tables
+ * arrays
 
 They also opts to produce nil as opposed to signaling errors when they
 fail to access (eg (access nil 'anything) produces nil rather than
@@ -40,6 +41,37 @@ any of the slots.
 
 The '("id" :type :alist) is required because ucw expects an alist, but
 access will default to plist when asked to set on a nil.
+
+## do-access, do-set-access 
+
+When we fail to find an reader/writer function, access will ultimately
+have to be reading and writing a datastructure.  That happens in these
+generic functions.  These functions also allow access extensibility to
+support any conceivable map datastructure.
+
+### What happens when setting through nil?
+
+Access will create a dictionary to put stuff into. The type of
+dictionary will depend on the :type parameter.  
+
+ * :type is expected to be: cl:array, :array, cl:hash-table , :plist,
+   :alist, :object, cl:standard-object, or a type that we can call
+   'make-instance on with no arguments.
+
+EX:
+ 
+```
+=>(setf (accesses place
+         '(:a :type :alist)
+         '(2 :type array)
+         '(:b :type 'hash-table)) 3)
+;; 3
+
+=> place
+
+;; ((:a . #(nil nil #<hash-table :b=3 >)))
+
+```
 
 ### Limitations
 

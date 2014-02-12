@@ -32,8 +32,10 @@
 
 (defparameter +al+ `((:one . 1) ("two" . 2) ("three" . 3) (four . 4) (:5 . 5)))
 (defparameter +pl+ (list :one 1 "two" 2 "three" 3 'four 4 :5 5))
-(defparameter +ht+ (alexandria::plist-hash-table (list "one" 1 "two" 2 "three" 3 "four" 4 "5" 5)
-						   :test 'equalp))
+(defparameter +ht+
+  (alexandria::plist-hash-table
+   (list "one" 1 "two" 2 "three" 3 "four" 4 "5" 5)
+   :test 'equalp))
 
 (defclass access-test ()
   ((one :accessor one :initarg :one :initform 1)
@@ -98,8 +100,9 @@
     (assert-equal 333 (access +ht+ 'three))
     (assert-equal 333 (access +ht+ "three"))
     (setf (access +ht+ 'three) 3)
-    (assert-equal nil (access +ht+ 'sixteen))
-    (setf (access +ht+ 'sixteen) 16)
+    
+    (assert-equal nil (access +ht+ "sixteen"))
+    (setf (access +ht+ "sixteen") 16)
     (assert-equal 16 (access +ht+ 'sixteen))
     (assert-equal 16 (access +ht+ "sixteen"))
     (remhash "sixteen" +ht+)))
@@ -294,3 +297,23 @@
     (assert-equal '((:a . "a")) (accesses o 'pl '(:my-new-alist :type :plist)))
     (setf (accesses o 'pl '(:my-new-alist :type :plist) '("b" :type :alist)) 'b)
     (assert-equal 'b (accesses o 'pl '(:my-new-alist :type :plist) '("b" :type :alist)))))
+
+(define-test deep-null-dictionary-instantiation ()
+  (let ( ht arr ht2 alist val )
+    (setf (access:accesses
+           ht
+           '(:da :type :hash-table :test 'equalp)
+           '(5 :type :array)
+           '(:key :type :hash-table)
+           '("aa" :type :alist))
+          42)
+    (setf arr (gethash :da ht)
+          ht2 (aref arr 5)
+          alist (gethash :key ht2)
+          val (cdr (assoc "aa" alist :test #'equalp)))
+    (assert-typep 'hash-table ht)
+    (assert-typep 'array arr)
+    (assert-typep 'hash-table ht2)
+    (assert-typep 'list alist)
+    (assert-eql 42 val)
+    (assert-eql 42 (accesses ht :da 5 :key "aa"))))
