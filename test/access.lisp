@@ -317,3 +317,8 @@
     (assert-typep 'list alist)
     (assert-eql 42 val)
     (assert-eql 42 (accesses ht :da 5 :key "aa"))))
+
+(define-test null-plists-instantiation ()
+  (let (it)
+    (setf (access:accesses it :a :b) 3)
+    (assert-equal `(:a (:b 3)) it)))

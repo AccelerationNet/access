@@ -430,18 +430,20 @@
 
 (defun %initialize-null-container (o k type test)
   (or o
-      (cond
-        ((or (member type '(:hash-table)) (subtypep type 'hash-table))
-         (make-hash-table :test (%to-hash-test test)))
+      (when type
+        (cond
+          ((or (member type '(:hash-table))
+               (subtypep type 'hash-table))
+           (make-hash-table :test (%to-hash-test test)))
 
-        ((or (member type '(:array)) (subtypep type 'array))
-         ;;make an array big enough to hold our key
-         (make-array (apply #'+ 1 (ensure-list k))
-                     :adjustable t
-                     :initial-element nil))
+          ((or (member type '(:array)) (subtypep type 'array))
+           ;;make an array big enough to hold our key
+           (make-array (apply #'+ 1 (ensure-list k))
+                       :adjustable t
+                       :initial-element nil))
 
-        ((subtypep type 'standard-object)
-         (make-instance type)))))
+          ((subtypep type 'standard-object)
+           (make-instance type))))))
 
 (defgeneric do-set-access (new o k &key type test key)
   
