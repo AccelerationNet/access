@@ -168,6 +168,7 @@
     (keyword nil)
     (symbol (find-class o))
     (standard-class o)
+    (condition (class-of o))
     (standard-object (class-of o))))
 
 (defun appended (fn lst)
@@ -301,7 +302,8 @@
    if lax? we will ignore packages to find the slot we will always return a
    slot-name from the specified package if it exists, otherwise we return the
    slot-name we found if its in a different package"
-  (unless (and o (typep o 'standard-object)) (return-from has-slot? nil))
+  (unless (and o (typep o '(or standard-object condition)))
+    (return-from has-slot? nil))
   (let ((match (ensure-slot-name slot-name))
         (slot-names (class-slot-names o))
         lax)
@@ -396,7 +398,9 @@
           (awhen (ignore-errors (string k))
             (gethash it o)))))
   
-  (:method ((o standard-object) k &key type test key skip-call?)
+  (:method ( o  k &key type test key skip-call?)
+    ;; not specializing on standard-object here
+    ;; allows this same code path to work with conditions (in sbcl)
     (let ((actual-slot-name (has-slot? o k)))
       (cond
         ;; same package as requested, must be no accessor so handle slots
