@@ -135,26 +135,30 @@
 
 (defun %slot-readers (slots)
   (iter (for slot in (ensure-list slots))
-	(for reader-name = (or (ignore-errors
-                                ;; ESD's might not have this slot apparently
-                                (first (closer-mop::slot-definition-readers slot)))
-  ;; NB: We should probably check for a reader fn here before assuming
-  ;; the slot name is a reader-fn, but I couldnt find a cross platform way
-  ;; of doing this
-			      (closer-mop:slot-definition-name slot)))
-	(collecting reader-name into names)
-	;; some valid slot names are not valid function names (see type)
-	(collecting (ignore-errors
-		      (symbol-function reader-name)) into readers)
-	(finally (return (values readers names)))))
+    (for reader-name =
+         (or
+          ;; ESD's might not have this slot apparently
+          (and
+           (typep slot 'closer-mop:direct-slot-definition)
+           (first (closer-mop::slot-definition-readers slot)))
+          ;; NB: We should probably check for a reader fn here before assuming
+          ;; the slot name is a reader-fn, but I couldnt find a cross platform way
+          ;; of doing this
+          (closer-mop:slot-definition-name slot)))
+    (collecting reader-name into names)
+    ;; some valid slot names are not valid function names (see type)
+    (collecting (ignore-errors
+                 (symbol-function reader-name)) into readers)
+    (finally (return (values readers names)))))
 
 (defun %slot-writers (slots)
   (iter (for slot in (ensure-list slots))
 	(for sn = (closer-mop::slot-definition-name slot))
 	;; effective slots dont have readers or writers
 	;; but direct slots do, no idea why, I asked and its in the spec
-	(for wn = (or (first (closer-mop::slot-definition-writers slot))
-		      `(setf ,sn)))
+    (for wn = (or (and (typep slot 'closer-mop:direct-slot-definition)
+                       (first (closer-mop::slot-definition-writers slot)))
+                  `(setf ,sn)))
 	(collecting wn into writer-names)
 	(collecting sn into slot-names)
 	;; some valid slot names are not valid function names (see type)
