@@ -540,9 +540,9 @@
 
 (define-setf-expander access (place k
                               &key type test key
-                              &environment env
                               &aux (new-val (gensym "NEW-VAL"))
-                              (place-store (gensym "PLACE")))
+                              (place-store (gensym "PLACE"))
+                              &environment env)
   "This should allow setting places through access"
   (declare (ignore env))
   (values ()   ;; not using temp vars
@@ -588,9 +588,9 @@
     (rec-set o (first keys) (rest keys))))
 
 (define-setf-expander accesses (place &rest keys
-                                &environment env
                                 &aux (new-val (gensym "NEW-VAL"))
-                                (place-store (gensym "PLACE")))
+                                (place-store (gensym "PLACE"))
+                                &environment env)
   (declare (ignore env))
   (values ()   ;; not using temp vars
           ()   ;; not using temp vals
