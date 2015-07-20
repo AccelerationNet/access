@@ -10,7 +10,8 @@
   :description "A library providing functions that unify data-structure access for Common Lisp:
       access and (setf access)"
   :licence "BSD"
-  :version "0.2"
+  :author "Acceleration.net, Russ Tyndall, Nathan Bird, Ryan Davis"
+  :version "1"
   :serial t
   :components ((:file "access")
                (:file "arg-list-manipulation"))
@@ -19,7 +20,8 @@
 (defsystem :access-test
   :description "Tests for the access library"
   :licence "BSD"
-  :version "0.2"
+  :version "1"
+  :author "Acceleration.net, Russ Tyndall, Nathan Bird, Ryan Davis"
   :serial t
   :components ((:module :test
                         :serial t
