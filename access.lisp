@@ -88,12 +88,13 @@
     (or (eql x y)
 	(equalp (cast x) (cast y)))))
 
-(defgeneric plist-val (id list &key test key )
+(defgeneric plist-val (id list &key test key)
   (:documentation "get a value out of a plist based on its key")
-  (:method (id list &key (test #'equalper) (key #'identity))
+  (:method (id list &key (test #'access::equalper) (key #'identity))
     (iter (for (k v) on list by #'cddr)
-      (if (funcall test (funcall key k) id)
-          (return v)))))
+      (for found = (funcall test (funcall key k) id))
+      (when found
+          (return-from plist-val (values v found))))))
 
 (defgeneric rem-plist-val (id list &key test key)
   (:documentation
@@ -385,24 +386,25 @@
     (if (or (eql type :alist)
             (and (null type) (consp (first o))))
         ;;alist
-        (cdr (assoc k o :test test :key key))
+        (let ((assoc (assoc k o :test test :key key)))
+          (values (cdr assoc) (and assoc t)))
         ;;plist
-        (plist-val k o :test test :key key)
-        ))
+        (plist-val k o :test test :key key)))
 
   (:method ((o array) k &key type test key skip-call?)
     (declare (ignore type test key skip-call?))
-    (apply #'aref o (ensure-list k)))
+    (when (< k (length o))
+      (values (aref o k) t)))
 
   (:method ((o hash-table) k &key type test key skip-call?)
     (declare (ignore type test key skip-call?))
     (multiple-value-bind (res found) (gethash k o)
       (if found
-          res
+          (values res found)
           (awhen (ignore-errors (string k))
             (gethash it o)))))
   
-  (:method ( o  k &key type test key skip-call?)
+  (:method (o  k &key type test key skip-call?)
     ;; not specializing on standard-object here
     ;; allows this same code path to work with conditions (in sbcl)
     (let ((actual-slot-name (has-slot? o k)))
@@ -410,13 +412,12 @@
         ;; same package as requested, must be no accessor so handle slots
         ((eql actual-slot-name k)
          (when (slot-boundp o k)
-           (slot-value o k)))
+           (values (slot-value o k) t)))
 
         ;; lets recheck for an accessor in the correct package
         (actual-slot-name
          (access o actual-slot-name :type type :test test :key key
-                                    :skip-call? skip-call?))
-        ))))
+                                    :skip-call? skip-call?))))))
 
 (defun access (o k &key type (test #'equalper) (key #'identity)
                    skip-call?)
@@ -424,17 +425,13 @@
    all through the same interface
 
    skip-call, skips trying to call "
-  ;; make these easy to have the same defaults everywhere
-  (unless test (setf test #'equalper))
-  (unless key (setf key #'identity))
   (multiple-value-bind (res called)
       (unless skip-call?
         ;; lets suppress the warning if it is just being called through access
         (call-if-applicable o k :warn-if-not-a-fn? nil))
     (if called
-        res
-        (do-access o k :test test :key key :type type)
-        )))
+        (values res t)
+        (do-access o k :test test :key key :type type))))
 
 (defun %initialize-null-container (o k type test)
   (or o
