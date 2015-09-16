@@ -15,7 +15,8 @@
   :serial t
   :components ((:file "access")
                (:file "arg-list-manipulation"))
-  :depends-on (:iterate :closer-mop :alexandria :anaphora :cl-interpol))
+  :depends-on (:iterate :closer-mop :alexandria :anaphora :cl-interpol)
+  :in-order-to ((test-op (load-op :access-test))))
 
 (defsystem :access-test
   :description "Tests for the access library"
