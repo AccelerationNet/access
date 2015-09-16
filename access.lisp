@@ -88,11 +88,16 @@
     (or (eql x y)
 	(equalp (cast x) (cast y)))))
 
+(defvar *default-test* #'access:equalper)
+(defvar *default-key* #'identity)
+
 (defgeneric plist-val (id list &key test key)
   (:documentation "get a value out of a plist based on its key")
-  (:method (id list &key (test #'access::equalper) (key #'identity))
+  (:method (id list &key (test *default-test*) (key *default-key*))
     (iter (for (k v) on list by #'cddr)
-      (for found = (funcall test (funcall key k) id))
+      (for found = (funcall (or test *default-test*)
+                            (funcall (or key *default-key*) k)
+                            id))
       (when found
           (return-from plist-val (values v found))))))
 
@@ -100,28 +105,32 @@
   (:documentation
    "removes key & its value from plist returning
    (values plist (list-of-values-removed))")
-  (:method (id list &key (test #'equalper) (key #'identity))
+  (:method (id list &key (test *default-test*) (key *default-key*))
     (iter
       (for (k v) on list by #'cddr)
-      (cond ((funcall test (funcall key k) id)
+      (cond ((funcall (or test *default-test*)
+                      (funcall (or key *default-key*) k)
+                      id)
              (collect v into removed))
             (T (collect k into plist)
                (collect v into plist)))
       (finally (return (values plist removed))))))
 
-(defmacro rem-plist-val! (id place &key (test '#'equalper) (key '#'identity))
+(defmacro rem-plist-val! (id place &key (test '*default-test*) (key '*default-key*))
   `(setf ,place
     (rem-plist-val ,id ,place :test ,test :key ,key)))
 
 (defgeneric set-plist-val (new id list &key test key)
   (:documentation "If a key exists in the plist, set its value, otherwise add
   this key to the dictionary")
-  (:method (new id list &key (test #'equalper) (key #'identity))
+  (:method (new id list &key (test *default-test*) (key *default-key*))
     (iter
       (with collected)
       (for (k v) on list by #'cddr)
       (collect k into res)
-      (if (funcall test (funcall key k) id)
+      (if (funcall (or test *default-test*)
+                   (funcall (or key *default-key*) k)
+                   id)
           (progn (setf collected T)
                  (collect new into res))
           (collect v into res))
@@ -130,7 +139,8 @@
          (setf res (list* id new res)))
        (return res)))))
 
-(defmacro set-plist-val! (new id place &key (test '#'equalper) (key '#'identity))
+(defmacro set-plist-val! (new id place
+                          &key (test '*default-test*) (key '*default-key*))
   `(setf ,place
     (set-plist-val ,new ,id ,place :test ,test :key ,key)))
 
@@ -241,10 +251,11 @@
    #'closer-mop:slot-definition-name
    (access:class-slots o)))
 
-(defun class-slot-by-name (o k &key (test #'equalper) )
+(defun class-slot-by-name (o k &key (test *default-test*) )
   (iter (for s in (access:class-slots o))
     (for name = (ensure-slot-name s))
-    (when (funcall test k name)
+    (when (funcall (or test *default-test*)
+                   k name)
       (return (values s name)))))
 
 (defun ensure-slot-name (sn)
@@ -380,13 +391,15 @@
 	(setf o (call-if-applicable o fn)))
   o)
 
-(defgeneric do-access  (o k &key type test key skip-call?)
-  (:method ((o list) k &key type test key skip-call?)
+(defgeneric do-access  (o k &key test key type skip-call?)
+  (:method ((o list) k &key (test *default-test*) (key *default-key*)
+                       type skip-call?)
     (declare (ignore skip-call?))
     (if (or (eql type :alist)
             (and (null type) (consp (first o))))
         ;;alist
-        (let ((assoc (assoc k o :test test :key key)))
+        (let ((assoc (assoc k o :test (or test *default-test*)
+                                :key (or key *default-key*))))
           (values (cdr assoc) (and assoc t)))
         ;;plist
         (plist-val k o :test test :key key)))
@@ -404,7 +417,8 @@
           (awhen (ignore-errors (string k))
             (gethash it o)))))
   
-  (:method (o  k &key type test key skip-call?)
+  (:method (o  k &key (test *default-test*) (key *default-key*)
+                 type skip-call?)
     ;; not specializing on standard-object here
     ;; allows this same code path to work with conditions (in sbcl)
     (let ((actual-slot-name (has-slot? o k)))
@@ -416,10 +430,12 @@
 
         ;; lets recheck for an accessor in the correct package
         (actual-slot-name
-         (access o actual-slot-name :type type :test test :key key
-                                    :skip-call? skip-call?))))))
+         (access o actual-slot-name
+                 :test (or test *default-test*)
+                 :key (or key *default-key*)
+                 :type type :skip-call? skip-call?))))))
 
-(defun access (o k &key type (test #'equalper) (key #'identity)
+(defun access (o k &key type (test *default-test*) (key *default-key*)
                    skip-call?)
   "Access plists, alists, arrays, hashtables and clos objects
    all through the same interface
