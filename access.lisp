@@ -419,7 +419,7 @@
           (values res found)
           (awhen (ignore-errors (string k))
             (gethash it o)))))
-  
+
   (:method (o  k &key (test (default-test)) (key (default-key))
                  type skip-call?)
     ;; not specializing on standard-object here
@@ -470,13 +470,13 @@
            (make-instance type))))))
 
 (defgeneric do-set-access (new o k &key type test key)
-  
+
   ;; always return the new value as the first value
   ;; every primary method should return the modified object
   (:method :around (new o k &key type test key)
     (declare (ignore o k type test key))
     (values new (call-next-method)))
-  
+
   (:method (new (o list) k &key type test key )
     (if (or (eql type :alist)
             (and (null type) (consp (first o))))
@@ -488,7 +488,7 @@
         ;;plist
         (set-plist-val new k o :test test :key key)
         ))
-  
+
   (:method (new (o array) k &key type test key)
     (declare (ignore type test key))
     #+clisp
@@ -499,18 +499,9 @@
 
   (:method (new (o hash-table) k &key type test key)
     (declare (ignore type test key))
-    (let ((skey (string k)))
-      (multiple-value-bind (res found) (gethash k o)
-        (declare (ignore res))
-        (multiple-value-bind (sres sfound)
-            (awhen skey (gethash it o))
-          (declare (ignore sres))
-          (cond
-            (found (setf (gethash k o) new))
-            (sfound (setf (gethash skey o) new))
-            (T (setf (gethash k o) new))))))
+    (setf (gethash k o) new)
     o)
-  
+
   (:method (new (o standard-object) k &key type test key)
     (declare (ignore type test key))
     (let ((actual-slot-name (has-slot? o k)))
@@ -785,7 +776,7 @@ readtable on stack."
   (values))
 
 (defun %disable-dot-syntax ()
-  "Internal function used to restore previous readtable." 
+  "Internal function used to restore previous readtable."
   (if *dot-previous-readtables*
     (setq *readtable* (pop *dot-previous-readtables*))
     (setq *readtable* (copy-readtable nil)))
@@ -801,4 +792,3 @@ readtable on stack."
 readtable is used."
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (%disable-dot-syntax)))
-
