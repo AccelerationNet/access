@@ -491,10 +491,7 @@
   
   (:method (new (o array) k &key type test key)
     (declare (ignore type test key))
-    #+clisp
     (setf (apply #'aref o (ensure-list k)) new)
-    #-clisp
-    (apply '(setf aref) new o (ensure-list k))
     o)
 
   (:method (new (o hash-table) k &key type test key)
