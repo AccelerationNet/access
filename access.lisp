@@ -67,26 +67,26 @@
    (format-args :accessor format-args :initarg :format-args :initform nil)
    (original-error :accessor original-error :initarg :original-error :initform nil))
   (:report (lambda (c s)
-	     (apply #'format
-	      s
-	      (format-control c)
-	      (format-args c)))))
+         (apply #'format
+          s
+          (format-control c)
+          (format-args c)))))
 
 (define-condition access-warning (warning access-condition) ())
 
 (defun access-warn (message &rest args)
   (warn (make-condition 'access-warning
-			:format-control message
-			:format-args args)))
+            :format-control message
+            :format-args args)))
 
 (defun equalper (x y)
   "compares symbols by equalp symbol-name"
   (flet ((cast (it)
-	   (typecase it
-	     (symbol (string it))
-	     (t it))))
+       (typecase it
+         (symbol (string it))
+         (t it))))
     (or (eql x y)
-	(equalp (cast x) (cast y)))))
+    (equalp (cast x) (cast y)))))
 
 (defvar *default-test* #'access:equalper)
 (defvar *default-key* #'identity)
@@ -167,17 +167,17 @@
 
 (defun %slot-writers (slots)
   (iter (for slot in (ensure-list slots))
-	(for sn = (closer-mop::slot-definition-name slot))
-	;; effective slots dont have readers or writers
-	;; but direct slots do, no idea why, I asked and its in the spec
+    (for sn = (closer-mop::slot-definition-name slot))
+    ;; effective slots dont have readers or writers
+    ;; but direct slots do, no idea why, I asked and its in the spec
     (for wn = (or (and (typep slot 'closer-mop:direct-slot-definition)
                        (first (closer-mop::slot-definition-writers slot)))
                   `(setf ,sn)))
-	(collecting wn into writer-names)
-	(collecting sn into slot-names)
-	;; some valid slot names are not valid function names (see type)
-	(collecting (ignore-errors (fdefinition wn)) into writers)
-	(finally (return (values writers writer-names slot-names)))))
+    (collecting wn into writer-names)
+    (collecting sn into slot-names)
+    ;; some valid slot names are not valid function names (see type)
+    (collecting (ignore-errors (fdefinition wn)) into writers)
+    (finally (return (values writers writer-names slot-names)))))
 
 (defun class-of-object ( o )
   "returns the class of the object/symbol (or itself if it is a class),
@@ -345,15 +345,15 @@
   "If we find a setf function named (setf fn) that can operate on o then call
    that with value new "
   (handler-bind ((undefined-function
-		  (lambda (c) (declare (ignore c))
-		    (return-from setf-if-applicable nil))))
+          (lambda (c) (declare (ignore c))
+            (return-from setf-if-applicable nil))))
     (setf fn
-	  (typecase fn
-	    ((or keyword string symbol closer-mop:slot-definition)
+      (typecase fn
+        ((or keyword string symbol closer-mop:slot-definition)
              (has-writer? o fn))
-	    (function fn)
+        (function fn)
             ((or number list) nil);; compound-keys and indexes
-	    (T (access-warn "Not sure how to call a ~A" fn) ))))
+        (T (access-warn "Not sure how to call a ~A" fn) ))))
   (etypecase fn
     (null nil)
     (standard-generic-function
@@ -371,12 +371,12 @@
                    (lambda (c) (declare (ignore c))
                      (return-from call-if-applicable nil))))
     (setf fn
-	  (typecase fn
-	    ((or keyword string closer-mop:slot-definition) (has-reader? o fn))
-	    (symbol (symbol-function fn))
-	    (function fn)
+      (typecase fn
+        ((or keyword string closer-mop:slot-definition) (has-reader? o fn))
+        (symbol (symbol-function fn))
+        (function fn)
             ((or number list) nil);; compound-keys and indexes
-	    (T (when warn-if-not-a-fn?
+        (T (when warn-if-not-a-fn?
                  (access-warn "Not sure how to call a ~A" fn))))))
 
   (handler-case
@@ -391,7 +391,7 @@
 (defun call-applicable-fns (o &rest fns)
   "For an object and a list of fn/fn names, call-if-applicable repeatedly"
   (iter (for fn in fns)
-	(setf o (call-if-applicable o fn)))
+    (setf o (call-if-applicable o fn)))
   o)
 
 (defgeneric do-access  (o k &key test key type skip-call?)
@@ -419,7 +419,7 @@
           (values res found)
           (awhen (ignore-errors (string k))
             (gethash it o)))))
-  
+
   (:method (o  k &key (test (default-test)) (key (default-key))
                  type skip-call?)
     ;; not specializing on standard-object here
@@ -470,13 +470,13 @@
            (make-instance type))))))
 
 (defgeneric do-set-access (new o k &key type test key)
-  
+
   ;; always return the new value as the first value
   ;; every primary method should return the modified object
   (:method :around (new o k &key type test key)
     (declare (ignore o k type test key))
     (values new (call-next-method)))
-  
+
   (:method (new (o list) k &key type test key )
     (if (or (eql type :alist)
             (and (null type) (consp (first o))))
@@ -488,7 +488,7 @@
         ;;plist
         (set-plist-val new k o :test test :key key)
         ))
-  
+
   (:method (new (o array) k &key type test key)
     (declare (ignore type test key))
     (setf (apply #'aref o (ensure-list k)) new)
@@ -507,7 +507,7 @@
             (sfound (setf (gethash skey o) new))
             (T (setf (gethash k o) new))))))
     o)
-  
+
   (:method (new (o standard-object) k &key type test key)
     (declare (ignore type test key))
     (let ((actual-slot-name (has-slot? o k)))
@@ -622,21 +622,21 @@
 (defun access-copy (from to keys)
   "Copy the values on 'from' to 'to' for all of the keys listed  "
   (iter (for k in keys)
-	(for (k1 k2) = (if (listp k) k (list k k)))
-	(setf (access to k2) (access from k1))))
+    (for (k1 k2) = (if (listp k) k (list k k)))
+    (setf (access to k2) (access from k1))))
 
 (defmacro with-access ((&rest keys) val-form &body body)
   "Similar to with-accessors except using the access functions"
   (let* ((gval (gensym "val"))
-	 (forms
-	  (iter (for k in keys)
-		(for (k-to k-from) = (if (listp k) k (list k k)))
-		(collect `(,k-to (access ,gval ',k-from))))))
+     (forms
+      (iter (for k in keys)
+        (for (k-to k-from) = (if (listp k) k (list k k)))
+        (collect `(,k-to (access ,gval ',k-from))))))
     `(let ((,gval ,val-form))
        (declare (ignorable ,gval))
        (symbol-macrolet (,@forms)
-	 ,@body
-	 ))))
+     ,@body
+     ))))
 
 (defun %create-accessor-symbol-list (class)
   "Gets the slots off a class an builds binding like  (local::symbol orig::symbol)
@@ -644,8 +644,8 @@
 
    used in with-all-slot-accessors"
   (let ((class (etypecase class
-		 (symbol (find-class class))
-		 (standard-class class))))
+         (symbol (find-class class))
+         (standard-class class))))
     (closer-mop:ensure-finalized class)
     (iter (for slot-name in (class-slot-names class))
       ;; collect bindings of local-symbol to class-slot-name
@@ -741,16 +741,16 @@
 
 (defun translate-dot-sym (sym)
   (let* ((pieces (split-dot-sym sym))
-	 (fns (iter (for sym in (rest pieces))
-		    (collect `(quote ,sym)))))
+     (fns (iter (for sym in (rest pieces))
+            (collect `(quote ,sym)))))
     (if (eql 1 (length pieces))
-	sym
-	`(accesses ,(first pieces) ,@fns))))
+    sym
+    `(accesses ,(first pieces) ,@fns))))
 
 (defun dot-translate-walker (form)
   (typecase form
     (cons (cons (dot-translate-walker (car form))
-		(dot-translate-walker (cdr form))))
+        (dot-translate-walker (cdr form))))
     (symbol (translate-dot-sym form))
     (atom form)))
 
@@ -782,7 +782,7 @@ readtable on stack."
   (values))
 
 (defun %disable-dot-syntax ()
-  "Internal function used to restore previous readtable." 
+  "Internal function used to restore previous readtable."
   (if *dot-previous-readtables*
     (setq *readtable* (pop *dot-previous-readtables*))
     (setq *readtable* (copy-readtable nil)))
@@ -798,4 +798,3 @@ readtable on stack."
 readtable is used."
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (%disable-dot-syntax)))
-
