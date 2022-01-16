@@ -74,8 +74,8 @@
       (assert-equal value nil)
       (assert-equal present-p nil))
     (assert-equal
-        (list "something" "5" "four" "three" "two" "one")
-        (access +ht+ 'hash-table-keys))
+     (list "5" "four" "one" "something" "three" "two")
+     (sort (access +ht+ 'hash-table-keys) 'string<))
     (assert-equal 3 (accesses o 'pl 'three ))))
 
 (define-test test-with-access ()
