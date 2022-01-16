@@ -452,22 +452,27 @@
         (values res t)
         (do-access o k :test test :key key :type type))))
 
-(defun %initialize-null-container (o k type test)
-  (or o
-      (when type
-        (cond
-          ((or (member type '(:hash-table))
-               (subtypep type 'hash-table))
-           (make-hash-table :test (%to-hash-test test)))
-
-          ((or (member type '(:array)) (subtypep type 'array))
-           ;;make an array big enough to hold our key
+(defun %initialize-null-container (k type test)
+  (flet ((create-array ()
+           ;; make an array big enough to hold our key
            (make-array (apply #'+ 1 (ensure-list k))
                        :adjustable t
-                       :initial-element nil))
-
-          ((subtypep type 'standard-object)
-           (make-instance type))))))
+                       :initial-element nil)))
+    (declare (inline create-array))
+    (case type
+      ((nil :list :alist :plist)
+       nil)
+      ((:hash-table)
+       (make-hash-table :test (%to-hash-test test)))
+      ((:array)
+       (create-array))
+      (otherwise
+       (cond ((subtypep type 'hash-table)
+              (make-hash-table :test (%to-hash-test test)))
+             ((subtypep type 'array)
+              (create-array))
+             ((subtypep type 'standard-object)
+              (make-instance type)))))))
 
 (defgeneric do-set-access (new o k &key type test key)
   
@@ -527,7 +532,7 @@
   ;; make these easy to have the same defaults everywhere
   (unless test (setf test #'equalper))
   (unless key (setf key #'identity))
-  (setf o (%initialize-null-container o k type test))
+  (unless o (setf o (%initialize-null-container k type test)))
   (multiple-value-bind (res called) (setf-if-applicable new o k)
     (if called
         (values res o)
@@ -591,7 +596,8 @@
                ;(unless key (setf key #'identity))
                (cond
                  (more
-                  (setf o (%initialize-null-container o k type test))
+                  (unless o
+                    (setf o (%initialize-null-container k type test)))
                   (multiple-value-bind (new new-place-val)
                       (rec-set (access o k :test test :type type :key key)
                                (first more) (rest more))
