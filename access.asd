@@ -8,7 +8,7 @@
   :serial t
   :components ((:file "access")
                (:file "arg-list-manipulation"))
-  :depends-on ("iterate" "closer-mop" "alexandria" "anaphora" "cl-interpol")
+  :depends-on ("iterate" "closer-mop" "alexandria" "anaphora" "cl-ppcre")
   :in-order-to ((test-op (load-op "access/test")))
   :perform (test-op (op c) (symbol-call '#:access-test '#:run-all-tests)))
 
