@@ -1,6 +1,6 @@
-(cl:defpackage :access
-  (:use :cl :cl-user :iterate)
-  (:shadowing-import-from :alexandria #:ensure-list #:if-let #:when-let)
+(cl:defpackage #:access
+  (:use #:cl #:iterate)
+  (:import-from #:alexandria #:ensure-list #:if-let #:when-let)
   (:export
    #:access-warning
    ;; utils to make this work

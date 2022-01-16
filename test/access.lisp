@@ -1,9 +1,9 @@
 (cl:defpackage :access-test
-  (:use :cl :cl-user :iterate :access :lisp-unit2))
+  (:use #:cl #:iterate #:lisp-unit2)
+  (:use #:access))
 
 ;; for a specific test
-(cl:defpackage :access-test-other
-  (:use :cl :cl-user :iterate :access :lisp-unit2))
+(cl:defpackage :access-test-other)
 
 (in-package :access-test)
 
