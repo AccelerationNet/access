@@ -1,6 +1,10 @@
 (cl:defpackage :access-test
   (:use #:cl #:iterate #:lisp-unit2)
-  (:use #:access))
+  (:use #:access)
+  (:import-from #:alexandria
+                #:plist-hash-table
+                #:hash-table-keys
+                #:copy-hash-table))
 
 ;; for a specific test
 (cl:defpackage :access-test-other)
@@ -29,7 +33,7 @@
 (defparameter +al+ `((:one . 1) ("two" . 2) ("three" . 3) (four . 4) (:5 . 5) (:something . nil)))
 (defparameter +pl+ (list :one 1 "two" 2 "three" 3 'four 4 :5 5 :something nil))
 (defparameter +ht+
-  (alexandria::plist-hash-table
+  (plist-hash-table
    (list "one" 1 "two" 2 "three" 3 "four" 4 "5" 5 "something" nil)
    :test 'equalp))
 
@@ -71,7 +75,7 @@
       (assert-equal present-p nil))
     (assert-equal
         (list "something" "5" "four" "three" "two" "one")
-        (access +ht+ 'alexandria:hash-table-keys))
+        (access +ht+ 'hash-table-keys))
     (assert-equal 3 (accesses o 'pl 'three ))))
 
 (define-test test-with-access ()
@@ -108,7 +112,7 @@
     (assert-equal 16 (access pl 'sixteen))))
 
 (define-test access-and-setting-hashtable ()
-  (let ((+ht+ (alexandria:copy-hash-table +ht+) ))
+  (let ((+ht+ (copy-hash-table +ht+) ))
     (assert-equal 3 (access +ht+ 'three))
     (setf (access +ht+ 'three) 333)
     (assert-equal 333 (access +ht+ 'three))

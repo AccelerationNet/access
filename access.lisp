@@ -573,7 +573,7 @@
    eg: (accesses o k1 k2) => (access (access o k1) k2)"
   (iter (for k in keys)
     (destructuring-bind (k &key type test key)
-        (alexandria:ensure-list k)
+        (ensure-list k)
       (setf o (access o k :test test :type type :key key ))))
   o)
 
@@ -586,7 +586,7 @@
   "
   (labels ((rec-set (o key more)
              (destructuring-bind (k &key type test key)
-                 (alexandria:ensure-list key)
+                 (ensure-list key)
                ;(unless test (setf test #'equalper))
                ;(unless key (setf key #'identity))
                (cond
