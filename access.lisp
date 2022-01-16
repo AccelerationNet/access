@@ -1,7 +1,6 @@
 (cl:defpackage :access
   (:use :cl :cl-user :iterate)
-  (:shadowing-import-from :alexandria #:ensure-list )
-  (:shadowing-import-from :anaphora #:awhen #:aif #:it)
+  (:shadowing-import-from :alexandria #:ensure-list #:if-let #:when-let)
   (:export
    #:access-warning
    ;; utils to make this work
@@ -200,9 +199,9 @@
     (typecase o
       (list (appended #'access:class-slots o))
       (t
-       (awhen (class-of-object o)
-         (closer-mop:ensure-finalized it)
-         (closer-mop:class-slots it))))))
+       (when-let (c (class-of-object o))
+         (closer-mop:ensure-finalized c)
+         (closer-mop:class-slots c))))))
 
 (defun class-slot-definitions (o)
   (class-slots o))
@@ -212,37 +211,37 @@
   (typecase o
     (list (appended #'access:class-direct-slot-readers o))
     (t
-     (awhen (class-of-object o)
-       (%slot-readers (closer-mop:class-direct-slots it ))))))
+     (when-let (c (class-of-object o))
+       (%slot-readers (closer-mop:class-direct-slots c))))))
 
 (defun class-slot-readers ( o )
   (typecase o
     (list (appended #'access:class-slot-readers o))
     (t
-     (awhen (class-of-object o)
-       (%slot-readers (closer-mop:class-slots it))))))
+     (when-let (c (class-of-object o))
+       (%slot-readers (closer-mop:class-slots c))))))
 
 (defun class-direct-slot-writers (o)
   (typecase o
     (list (appended #'access:class-direct-slot-writers o))
     (t
-     (awhen (class-of-object o)
-       (%slot-writers (closer-mop:class-direct-slots it))))))
+     (when-let (c (class-of-object o))
+       (%slot-writers (closer-mop:class-direct-slots c))))))
 
 (defun class-slot-writers (o)
   (typecase o
     (list (appended #'access:class-slot-writers o))
     (T
-     (awhen (class-of-object o)
-       (%slot-writers (closer-mop:class-slots it))))))
+     (when-let (c (class-of-object o))
+       (%slot-writers (closer-mop:class-slots c))))))
 
 (defun class-direct-slots (o)
   (typecase o
     (list (appended #'access:class-direct-slots o))
     (t
-     (awhen (class-of-object o)
-       (closer-mop:ensure-finalized it)
-       (closer-mop:class-direct-slots it)))))
+     (when-let (c (class-of-object o))
+       (closer-mop:ensure-finalized c)
+       (closer-mop:class-direct-slots c)))))
 
 (defun class-direct-slot-names (o)
   (mapcar
@@ -417,8 +416,8 @@
     (multiple-value-bind (res found) (gethash k o)
       (if found
           (values res found)
-          (awhen (ignore-errors (string k))
-            (gethash it o)))))
+          (when-let (skey (ignore-errors (string k)))
+            (gethash skey o)))))
 
   (:method (o  k &key (test (default-test)) (key (default-key))
                  type skip-call?)
@@ -481,10 +480,11 @@
     (if (or (eql type :alist)
             (and (null type) (consp (first o))))
         ;;alist
-        (aif (assoc k o :test test :key key)
-             (progn (setf (cdr it) new)
-                    o)
-             (list* (cons k new) o))
+        (if-let ((assoc (assoc k o :test test :key key)))
+          (progn
+            (setf (cdr assoc) new)
+            o)
+          (list* (cons k new) o))
         ;;plist
         (set-plist-val new k o :test test :key key)
         ))
@@ -500,7 +500,7 @@
       (multiple-value-bind (res found) (gethash k o)
         (declare (ignore res))
         (multiple-value-bind (sres sfound)
-            (awhen skey (gethash it o))
+            (when skey (gethash skey o))
           (declare (ignore sres))
           (cond
             (found (setf (gethash k o) new))
@@ -616,8 +616,8 @@
 
 (defun mutate-access (o k fn)
   "Mutate the value stored in key k on object o, by passing it through fn"
-  (awhen (access o k)
-    (setf (access o k) (funcall fn it))))
+  (when-let (value (access o k))
+    (setf (access o k) (funcall fn value))))
 
 (defun access-copy (from to keys)
   "Copy the values on 'from' to 'to' for all of the keys listed  "

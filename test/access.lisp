@@ -1,13 +1,9 @@
 (cl:defpackage :access-test
-  (:use :cl :cl-user :iterate :access :lisp-unit2)
-  (:shadowing-import-from :alexandria #:ensure-list )
-  (:shadowing-import-from :anaphora #:awhen #:aif #:it)
-  (:export ))
+  (:use :cl :cl-user :iterate :access :lisp-unit2))
 
 ;; for a specific test
 (cl:defpackage :access-test-other
-  (:use :cl :cl-user :iterate :access :lisp-unit2)
-  (:export ))
+  (:use :cl :cl-user :iterate :access :lisp-unit2))
 
 (in-package :access-test)
 
