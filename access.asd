@@ -4,7 +4,7 @@
   :description "A library providing functions that unify data-structure access for Common Lisp: access and (setf access)"
   :licence "BSD"
   :author "Acceleration.net, Russ Tyndall, Nathan Bird, Ryan Davis"
-  :version "1.5.0"
+  :version "1.6.0"
   :serial t
   :components ((:file "access")
                (:file "arg-list-manipulation"))
