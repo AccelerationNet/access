@@ -198,10 +198,11 @@
 (define-test dot-iteration ()
   (with-dot ()
     (iter (for (k v . rest) on (list :pl1 +pl+ :pl2 +pl+) by #'cddr)
-	  (when (first-iteration-p)
-	    (assert-equal 12 rest.pl2.length)
-	    (assert-equal 4 rest.pl2.four))
-	  (assert-equal 4 v.four))))
+      (declare (ignorable k))
+      (when (first-iteration-p)
+        (assert-equal 12 rest.pl2.length)
+        (assert-equal 4 rest.pl2.four))
+      (assert-equal 4 v.four))))
 
 ;; sbcl started raising (rightly) style warnings about this
 (handler-bind ((style-warning #'muffle-warning))
