@@ -15,7 +15,7 @@
 (defsystem "access/test"
   :description "Tests for the access library"
   :licence "BSD"
-  :version "1.5.0"
+  :version "1.6.0"
   :author "Acceleration.net, Russ Tyndall, Nathan Bird, Ryan Davis"
   :serial t
   :components ((:module :test
