@@ -6,6 +6,7 @@
    find the specified value for a given key")
   (:method (id arg-list &key (test #'equalper) (key #'identity))
     (iter (for (k v . rest) on arg-list)
+      (declare (ignorable rest))
       (unless (keywordp k) (next-iteration))
       (when (funcall test (funcall key k) id)
         (return v)))))
@@ -68,6 +69,7 @@
        (with len-1 = (- (length arg-list) 1))
        (for i from 0)
        (for (k v . rest) on arg-list)
+       (declare (ignorable rest))
        (when skip? (setf skip? nil) (next-iteration))
        ;; when we are not the key to remove
        (cond
