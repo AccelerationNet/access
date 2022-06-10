@@ -79,7 +79,7 @@
           (setf skip? t)
           (collect k)
           (unless (= i len-1) (collect v)))
-         (T
+         (t
           (setf skip? t)
           (setf removed-val v))))
      removed-val)))
