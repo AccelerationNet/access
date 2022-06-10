@@ -114,7 +114,7 @@
                       (funcall (or key (default-key)) k)
                       id)
              (collect v into removed))
-            (T (collect k into plist)
+            (t (collect k into plist)
                (collect v into plist)))
       (finally (return (values plist removed))))))
 
@@ -133,7 +133,7 @@
       (if (funcall (or test (default-test))
                    (funcall (or key (default-key)) k)
                    id)
-          (progn (setf collected T)
+          (progn (setf collected t)
                  (collect new into res))
           (collect v into res))
       (finally
@@ -231,7 +231,7 @@
 (defun class-slot-writers (o)
   (typecase o
     (list (appended #'access:class-slot-writers o))
-    (T
+    (t
      (when-let (c (class-of-object o))
        (%slot-writers (closer-mop:class-slots c))))))
 
@@ -279,7 +279,7 @@
                 ((or symbol keyword string closer-mop:slot-definition)
                  (equalper name match))
                 ((or list number) nil) ;; compound-keys , array indexes
-                (T (access-warn "Not sure how to ~S maps to a function" reader-name)))
+                (t (access-warn "Not sure how to ~S maps to a function" reader-name)))
           (return (values reader name)))))))
 
 (defun has-writer? (o writer-name
@@ -303,7 +303,7 @@
                       ))
                  (list ;; exact list match
                   (equal wn writer-name))
-                 (T (access-warn "Not sure how to ~S maps to a function" writer-name)))
+                 (t (access-warn "Not sure how to ~S maps to a function" writer-name)))
            (return (values writer wn sn))))
        ;; setf-form ;; try again with just the slotname
        (when (listp writer-name)
@@ -352,13 +352,13 @@
              (has-writer? o fn))
         (function fn)
             ((or number list) nil);; compound-keys and indexes
-        (T (access-warn "Not sure how to call a ~A" fn) ))))
+        (t (access-warn "Not sure how to call a ~A" fn) ))))
   (etypecase fn
     (null nil)
     (standard-generic-function
      (when (compute-applicable-methods fn (list new o))
-       (values (funcall fn new o) T)))
-    (function (values (funcall fn new o) T))))
+       (values (funcall fn new o) t)))
+    (function (values (funcall fn new o) t))))
 
 (defun call-if-applicable (o fn &key (warn-if-not-a-fn? t))
   "See if there is a method named fn specialized on o, or a function named fn
@@ -375,7 +375,7 @@
         (symbol (symbol-function fn))
         (function fn)
             ((or number list) nil);; compound-keys and indexes
-        (T (when warn-if-not-a-fn?
+        (t (when warn-if-not-a-fn?
                  (access-warn "Not sure how to call a ~A" fn))))))
 
   (handler-case
@@ -383,8 +383,8 @@
         (null nil)
         (standard-generic-function
          (when (compute-applicable-methods fn (list o))
-           (values (funcall fn o) T)))
-        (function (values (funcall fn o) T)))
+           (values (funcall fn o) t)))
+        (function (values (funcall fn o) t)))
     (unbound-slot (c) (declare (ignore c)))))
 
 (defun call-applicable-fns (o &rest fns)
@@ -510,7 +510,7 @@
           (cond
             (found (setf (gethash k o) new))
             (sfound (setf (gethash skey o) new))
-            (T (setf (gethash k o) new))))))
+            (t (setf (gethash k o) new))))))
     o)
 
   (:method (new (o standard-object) k &key type test key)
@@ -603,7 +603,7 @@
                                (first more) (rest more))
                     (setf (access o k :test test :type type :key key) new-place-val)
                     (values new o)))
-                 (T (set-access new o k :test test :type type :key key))))))
+                 (t (set-access new o k :test test :type type :key key))))))
     (rec-set o (first keys) (rest keys))))
 
 (define-setf-expander accesses (place &rest keys
