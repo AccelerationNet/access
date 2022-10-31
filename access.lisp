@@ -185,9 +185,8 @@
     (keyword nil)
     (symbol (find-class o))
     (standard-class o)
-    (condition (class-of o))
-    (standard-object (class-of o))
-    (structure-object (class-of o))))
+    ((or condition standard-object structure-object)
+     (class-of o))))
 
 (defun appended (fn lst)
   "Mapcan caused all sorts of trouble with its NCONCing"
@@ -324,6 +323,7 @@
   ;; The accessing of structure objects slots is undefined behaviour by
   ;; the language specification, but most Lisp implementations define
   ;; slot-value on structure-objects in a meaningful and expected way.
+  ;; This was tested to work for SBCL, CCL, ECL, ABCL, CLISP, Clasp, LW, ACL.
   (unless (and o (typep o '(or standard-object structure-object condition)))
     (return-from has-slot? nil))
   (let ((match (ensure-slot-name slot-name))
