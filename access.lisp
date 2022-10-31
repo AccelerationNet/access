@@ -538,8 +538,8 @@
         ((eql actual-slot-name k)
          (setf (slot-value o k) new))
         ;; different package, but we have a slot, so lets look for its accessor
-        (actual-slot-name
-         (set-access new o actual-slot-name))
+        ;;(actual-slot-name
+        ;; (set-access new o actual-slot-name))
         ))
     o))
 
