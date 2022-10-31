@@ -321,6 +321,7 @@
    if lax? we will ignore packages to find the slot we will always return a
    slot-name from the specified package if it exists, otherwise we return the
    slot-name we found if its in a different package"
+  ;; The accessing of structure objects slots is undefined behaviour by the language specification, but most Lisp implementations define slot-value on structure-objects in a meaningful and expected way.
   (unless (and o (typep o '(or standard-object structure-object condition)))
     (return-from has-slot? nil))
   (let ((match (ensure-slot-name slot-name))
