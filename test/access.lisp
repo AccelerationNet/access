@@ -48,6 +48,17 @@
 
 (defun make-obj () (make-instance 'access-test))
 
+(defstruct access-test-struct
+  (one 1)
+  (two 2)
+  (three 3)
+  (four 4)
+  (five 5)
+  (null-slot ())
+  (pl (copy-list +pl+)))
+
+(defun make-struct () (make-instance 'access-test-struct))
+
 (define-test access-basic ()
   (let ((o (make-obj)))
     (assert-equal 6 (access +al+ 'length))
@@ -80,6 +91,18 @@
 
 (define-test test-with-access ()
   (let ((o (make-obj)))
+    (with-access (one two (my-three three))
+        o
+      (assert-equal 1 one)
+      (assert-equal 2 two)
+      (assert-equal 3 my-three)
+      (setf my-three 33)
+      (assert-equal 33 my-three)
+      (assert-equal 33 (access o 'three))
+      (setf my-three 3)
+      ))
+  
+  (let ((o (make-struct)))
     (with-access (one two (my-three three))
         o
       (assert-equal 1 one)
@@ -144,6 +167,37 @@
 
 (define-test setting-object-attributes ()
   (let ((o (make-obj)))
+    (assert-equal 1 (accesses o 'pl :one) o (pl o))
+    (setf (accesses o 'pl :one) 111)
+    (assert-equal 111 (accesses o 'pl :one)  o (pl o))
+    (setf (accesses o 'pl :one) 1)
+    (assert-equal 1 (accesses o 'pl :one)  o (pl o))
+    (assert-equal nil (accesses o 'pl :twenty)  o (pl o))
+    (setf (accesses o 'pl :twenty) 20)
+    (assert-equal 20 (accesses o 'pl :twenty)  o (pl o))
+    (setf (accesses o 'pl :twenty) nil)
+    (assert-equal nil (accesses o 'pl :twenty)  o (pl o))
+    ))
+
+(define-test access-and-setting-struct ()
+  (let ((o (make-struct)))
+    (assert-equal nil (access o 'null-slot))
+    (setf (accesses o 'null-slot 'not-a-fn) 'any-more)
+    (assert-equal 'any-more (accesses o 'null-slot 'not-a-fn))
+    (assert-equal 1 (access o 'one))
+    (assert-equal 4 (access o 'four))
+    (setf (access o 'four) 444
+          (access o 'one) 111)
+    (assert-equal 111 (access o 'one))
+    (assert-equal 444 (access o 'four))
+    (setf (access o 'four) 4
+          (access o 'one) 1)
+    (assert-equal nil (access o 'nothing))
+    (setf (access o 'nothing) 10000)
+    (assert-equal nil (access o 'nothing))))
+
+(define-test setting-struct-attributes ()
+  (let ((o (make-struct)))
     (assert-equal 1 (accesses o 'pl :one) o (pl o))
     (setf (accesses o 'pl :one) 111)
     (assert-equal 111 (accesses o 'pl :one)  o (pl o))
