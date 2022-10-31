@@ -57,7 +57,8 @@
   (null-slot ())
   (pl (copy-list +pl+)))
 
-(defun make-struct () (make-instance 'access-test-struct))
+(defun make-struct ()
+  (make-access-test-struct))
 
 (define-test access-basic ()
   (let ((o (make-obj)))
@@ -198,16 +199,16 @@
 
 (define-test setting-struct-attributes ()
   (let ((o (make-struct)))
-    (assert-equal 1 (accesses o 'pl :one) o (pl o))
+    (assert-equal 1 (accesses o 'pl :one) o (slot-value o 'pl))
     (setf (accesses o 'pl :one) 111)
-    (assert-equal 111 (accesses o 'pl :one)  o (pl o))
+    (assert-equal 111 (accesses o 'pl :one)  o (slot-value o 'pl))
     (setf (accesses o 'pl :one) 1)
-    (assert-equal 1 (accesses o 'pl :one)  o (pl o))
-    (assert-equal nil (accesses o 'pl :twenty)  o (pl o))
+    (assert-equal 1 (accesses o 'pl :one)  o (slot-value o 'pl))
+    (assert-equal nil (accesses o 'pl :twenty)  o (slot-value o 'pl))
     (setf (accesses o 'pl :twenty) 20)
-    (assert-equal 20 (accesses o 'pl :twenty)  o (pl o))
+    (assert-equal 20 (accesses o 'pl :twenty)  o (slot-value o 'pl))
     (setf (accesses o 'pl :twenty) nil)
-    (assert-equal nil (accesses o 'pl :twenty)  o (pl o))
+    (assert-equal nil (accesses o 'pl :twenty)  o (slot-value o 'pl))
     ))
 
 
