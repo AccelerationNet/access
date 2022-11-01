@@ -533,14 +533,8 @@
   (:method (new (o structure-object) k &key type test key)
     (declare (ignore type test key))
     (let ((actual-slot-name (has-slot? o k)))
-      (cond
-        ;; same package so there must be no accessor
-        ((eql actual-slot-name k)
-         (setf (slot-value o k) new))
-        ;; different package, but we have a slot, so lets look for its accessor
-        ;;(actual-slot-name
-        ;; (set-access new o actual-slot-name))
-        ))
+      (when actual-slot-name
+        (setf (slot-value o actual-slot-name) new)))
     o))
 
 (defun set-access (new o k &key type (test #'equalper) (key #'identity))
