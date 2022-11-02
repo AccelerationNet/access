@@ -191,11 +191,25 @@
           (access o 'one) 111)
     (assert-equal 111 (access o 'one))
     (assert-equal 444 (access o 'four))
+
+    ;; FIXME: This doesn't work because there's no way in current implementation
+    ;; of getting the correct writer function for a slot of a structure object:
+    ;;(setf (access o 'access-test-struct-one) 1111)
+    ;;(setf (access o 'access-test-struct-four) 4444)
+    
+    ;;(assert-equal 1111 (access o 'one))
+    ;;(assert-equal 4444 (access o 'four))
+    
     (setf (access o 'four) 4
           (access o 'one) 1)
     (assert-equal nil (access o 'nothing))
     (setf (access o 'nothing) 10000)
-    (assert-equal nil (access o 'nothing))))
+    (assert-equal nil (access o 'nothing))
+
+    ;; Struct reader functions work:
+    (assert-equal 1 (access o 'access-test-struct-one))
+    (assert-equal 4 (access o 'access-test-struct-four))
+    ))
 
 (define-test setting-struct-attributes ()
   (let ((o (make-struct)))
