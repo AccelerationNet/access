@@ -185,8 +185,8 @@
     (keyword nil)
     (symbol (find-class o))
     (standard-class o)
-    (condition (class-of o))
-    (standard-object (class-of o))))
+    ((or condition standard-object structure-object)
+     (class-of o))))
 
 (defun appended (fn lst)
   "Mapcan caused all sorts of trouble with its NCONCing"
@@ -320,7 +320,11 @@
    if lax? we will ignore packages to find the slot we will always return a
    slot-name from the specified package if it exists, otherwise we return the
    slot-name we found if its in a different package"
-  (unless (and o (typep o '(or standard-object condition)))
+  ;; The accessing of structure objects slots is undefined behaviour by
+  ;; the language specification, but most Lisp implementations define
+  ;; slot-value on structure-objects in a meaningful and expected way.
+  ;; This was tested to work for SBCL, CCL, ECL, ABCL, CLISP, Clasp, LW, ACL.
+  (unless (and o (typep o '(or standard-object structure-object condition)))
     (return-from has-slot? nil))
   (let ((match (ensure-slot-name slot-name))
         (slot-names (class-slot-names o))
@@ -524,6 +528,13 @@
         (actual-slot-name
          (set-access new o actual-slot-name))
         ))
+    o)
+
+  (:method (new (o structure-object) k &key type test key)
+    (declare (ignore type test key))
+    (let ((actual-slot-name (has-slot? o k)))
+      (when actual-slot-name
+        (setf (slot-value o actual-slot-name) new)))
     o))
 
 (defun set-access (new o k &key type (test #'equalper) (key #'identity))
