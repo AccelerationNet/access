@@ -420,8 +420,10 @@
     (multiple-value-bind (res found) (gethash k o)
       (if found
           (values res found)
-          (when-let (skey (ignore-errors (string k)))
-            (gethash skey o)))))
+          (let ((skey (ignore-errors (string k)))
+                (downcase-skey (ignore-errors (string-downcase (string k)))))
+            (or (and skey (gethash skey o))
+                (and downcase-skey (gethash downcase-skey o)))))))
 
   (:method (o  k &key (test (default-test)) (key (default-key))
                  type skip-call?)
